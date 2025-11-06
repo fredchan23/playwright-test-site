@@ -39,9 +39,9 @@ steps:
       - 'VITE_SUPABASE_URL=${_VITE_SUPABASE_URL},VITE_SUPABASE_ANON_KEY=${_VITE_SUPABASE_ANON_KEY}'
 
 substitutions:
-  _REGION: us-central1
-  _REPOSITORY: my-app-repo
-  _SERVICE_NAME: my-react-app
+  _REGION: asia-southeast1
+  _REPOSITORY: playwright-test-site
+  _SERVICE_NAME: playwright-test-site
 
 options:
   logging: CLOUD_LOGGING_ONLY
