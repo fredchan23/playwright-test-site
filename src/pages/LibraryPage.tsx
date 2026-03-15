@@ -3,10 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Plus, Search, LogOut, FileText, X, SlidersHorizontal } from 'lucide-react';
+import RangeSlider from '../components/RangeSlider';
 
 interface Genre {
   id: string;
   name: string;
+}
+
+interface LessonFile {
+  id: string;
+  lesson_id: string;
+  file_size: number;
 }
 
 interface Lesson {
@@ -20,6 +27,8 @@ interface Lesson {
   genre?: Genre | null;
   owner?: { username: string };
   shared_by?: string;
+  files?: LessonFile[];
+  total_file_size?: number;
 }
 
 export default function LibraryPage() {
@@ -34,6 +43,8 @@ export default function LibraryPage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
+  const [fileSizeRange, setFileSizeRange] = useState<[number, number]>([0, 10]);
+  const [maxFileSize, setMaxFileSize] = useState(10);
 
   useEffect(() => {
     loadData();
@@ -44,7 +55,7 @@ export default function LibraryPage() {
 
     setLoading(true);
 
-    const [genresResult, ownLessonsResult, sharedLessonsResult] = await Promise.all([
+    const [genresResult, ownLessonsResult, sharedLessonsResult, filesResult] = await Promise.all([
       supabase.from('genres').select('*').order('name'),
       supabase
         .from('lessons')
@@ -55,23 +66,55 @@ export default function LibraryPage() {
         .from('lesson_shares')
         .select('lesson:lessons(*, genre:genres(*), owner:profiles(username))')
         .eq('shared_with_id', user.id),
+      supabase.from('lesson_files').select('id, lesson_id, file_size'),
     ]);
 
     if (genresResult.data) {
       setGenres(genresResult.data);
     }
 
+    const lessonFilesMap = new Map<string, LessonFile[]>();
+    let maxSize = 10;
+
+    if (filesResult.data) {
+      filesResult.data.forEach((file: LessonFile) => {
+        if (!lessonFilesMap.has(file.lesson_id)) {
+          lessonFilesMap.set(file.lesson_id, []);
+        }
+        lessonFilesMap.get(file.lesson_id)!.push(file);
+        const fileSizeMB = file.file_size / (1024 * 1024);
+        if (fileSizeMB > maxSize) {
+          maxSize = Math.ceil(fileSizeMB);
+        }
+      });
+    }
+
+    setMaxFileSize(maxSize);
+    setFileSizeRange([0, maxSize]);
+
     if (ownLessonsResult.data) {
-      setOwnLessons(ownLessonsResult.data);
-      extractTags(ownLessonsResult.data);
+      const lessonsWithFiles = ownLessonsResult.data.map((lesson: any) => {
+        const files = lessonFilesMap.get(lesson.id) || [];
+        const total_file_size = files.reduce((sum, file) => sum + file.file_size, 0) / (1024 * 1024);
+        return { ...lesson, files, total_file_size };
+      });
+      setOwnLessons(lessonsWithFiles);
+      extractTags(lessonsWithFiles);
     }
 
     if (sharedLessonsResult.data) {
       const shared = sharedLessonsResult.data
-        .map((share: any) => ({
-          ...share.lesson,
-          shared_by: share.lesson.owner?.username,
-        }))
+        .map((share: any) => {
+          if (!share.lesson) return null;
+          const files = lessonFilesMap.get(share.lesson.id) || [];
+          const total_file_size = files.reduce((sum, file) => sum + file.file_size, 0) / (1024 * 1024);
+          return {
+            ...share.lesson,
+            shared_by: share.lesson.owner?.username,
+            files,
+            total_file_size,
+          };
+        })
         .filter(Boolean);
       setSharedLessons(shared);
       extractTags([...ownLessonsResult.data || [], ...shared]);
@@ -117,6 +160,13 @@ export default function LibraryPage() {
       );
     }
 
+    if (fileSizeRange[0] > 0 || fileSizeRange[1] < maxFileSize) {
+      filtered = filtered.filter(lesson => {
+        const totalSize = lesson.total_file_size || 0;
+        return totalSize >= fileSizeRange[0] && totalSize <= fileSizeRange[1];
+      });
+    }
+
     return filtered;
   };
 
@@ -140,13 +190,15 @@ export default function LibraryPage() {
     setSelectedGenres([]);
     setSelectedTags([]);
     setSearchQuery('');
+    setFileSizeRange([0, maxFileSize]);
   };
 
   const filteredOwnLessons = filterLessons(ownLessons);
   const filteredSharedLessons = filterLessons(sharedLessons);
   const totalFiltered = filteredOwnLessons.length + filteredSharedLessons.length;
   const totalLessons = ownLessons.length + sharedLessons.length;
-  const hasActiveFilters = searchQuery || selectedGenres.length > 0 || selectedTags.length > 0;
+  const hasFileSizeFilter = fileSizeRange[0] > 0 || fileSizeRange[1] < maxFileSize;
+  const hasActiveFilters = searchQuery || selectedGenres.length > 0 || selectedTags.length > 0 || hasFileSizeFilter;
 
   if (loading) {
     return (
@@ -262,7 +314,7 @@ export default function LibraryPage() {
             </div>
 
             {availableTags.length > 0 && (
-              <div>
+              <div className="mb-6">
                 <h4 className="text-sm font-medium text-slate-700 mb-3">Tags</h4>
                 <div className="flex flex-wrap gap-2">
                   {availableTags.map(tag => (
@@ -282,6 +334,18 @@ export default function LibraryPage() {
                 </div>
               </div>
             )}
+
+            <div>
+              <RangeSlider
+                min={0}
+                max={maxFileSize}
+                step={0.1}
+                values={fileSizeRange}
+                onChange={setFileSizeRange}
+                label="Total File Size"
+                formatValue={(v) => `${v.toFixed(1)} MB`}
+              />
+            </div>
           </div>
         )}
 
