@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Plus, Search, LogOut, FileText, X, SlidersHorizontal } from 'lucide-react';
+import { Plus, Search, LogOut, FileText, X, SlidersHorizontal, LayoutGrid, List } from 'lucide-react';
 import RangeSlider from '../components/RangeSlider';
 
 interface Genre {
@@ -31,6 +31,8 @@ interface Lesson {
   total_file_size?: number;
 }
 
+type ViewMode = 'card' | 'list';
+
 export default function LibraryPage() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
@@ -45,6 +47,10 @@ export default function LibraryPage() {
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [fileSizeRange, setFileSizeRange] = useState<[number, number]>([0, 10]);
   const [maxFileSize, setMaxFileSize] = useState(10);
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    const saved = localStorage.getItem('library-view-mode');
+    return (saved === 'list' || saved === 'card') ? saved : 'card';
+  });
 
   useEffect(() => {
     loadData();
@@ -191,6 +197,11 @@ export default function LibraryPage() {
     setSelectedTags([]);
     setSearchQuery('');
     setFileSizeRange([0, maxFileSize]);
+  };
+
+  const handleViewModeChange = (mode: ViewMode) => {
+    setViewMode(mode);
+    localStorage.setItem('library-view-mode', mode);
   };
 
   const filteredOwnLessons = filterLessons(ownLessons);
@@ -379,14 +390,50 @@ export default function LibraryPage() {
 
         {filteredOwnLessons.length > 0 && (
           <section className="mb-12">
-            <h2 className="text-xl font-semibold text-slate-900 mb-4" data-testid="library-my-lessons-heading">
-              My Lessons ({filteredOwnLessons.length})
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredOwnLessons.map(lesson => (
-                <LessonCard key={lesson.id} lesson={lesson} isOwned={true} />
-              ))}
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-slate-900" data-testid="library-my-lessons-heading">
+                My Lessons ({filteredOwnLessons.length})
+              </h2>
+              <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1" data-testid="library-view-toggle">
+                <button
+                  onClick={() => handleViewModeChange('card')}
+                  className={`p-2 rounded transition-colors ${
+                    viewMode === 'card'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                  aria-label="Card view"
+                  data-testid="library-view-card-button"
+                >
+                  <LayoutGrid className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => handleViewModeChange('list')}
+                  className={`p-2 rounded transition-colors ${
+                    viewMode === 'list'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                  aria-label="List view"
+                  data-testid="library-view-list-button"
+                >
+                  <List className="w-5 h-5" />
+                </button>
+              </div>
             </div>
+            {viewMode === 'card' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredOwnLessons.map(lesson => (
+                  <LessonCard key={lesson.id} lesson={lesson} isOwned={true} />
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {filteredOwnLessons.map(lesson => (
+                  <LessonListItem key={lesson.id} lesson={lesson} isOwned={true} />
+                ))}
+              </div>
+            )}
           </section>
         )}
 
@@ -403,6 +450,65 @@ export default function LibraryPage() {
           </section>
         )}
       </main>
+    </div>
+  );
+}
+
+function LessonListItem({ lesson, isOwned }: { lesson: Lesson; isOwned: boolean }) {
+  const navigate = useNavigate();
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  return (
+    <div
+      onClick={() => navigate(`/lessons/${lesson.id}`)}
+      className="bg-white border border-slate-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
+      data-testid={`library-lesson-list-${lesson.id}`}
+    >
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between mb-2">
+            <div className="flex-1">
+              <h3 className="text-base font-semibold text-slate-900 mb-1" data-testid="lesson-list-title">
+                {lesson.title}
+              </h3>
+              {!isOwned && lesson.shared_by && (
+                <p className="text-xs text-slate-500 mb-2" data-testid="lesson-list-shared-by">
+                  Shared by {lesson.shared_by}
+                </p>
+              )}
+            </div>
+          </div>
+          <p className="text-sm text-slate-600 mb-3 line-clamp-2" data-testid="lesson-list-description">
+            {lesson.description}
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            {lesson.genre && (
+              <span className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded" data-testid="lesson-list-genre">
+                {lesson.genre.name}
+              </span>
+            )}
+            {lesson.tags && lesson.tags.length > 0 && (
+              lesson.tags.map(tag => (
+                <span key={tag} className="px-2 py-0.5 bg-slate-50 text-slate-600 text-xs rounded" data-testid="lesson-list-tag">
+                  {tag}
+                </span>
+              ))
+            )}
+          </div>
+        </div>
+        <div className="flex sm:flex-col items-end gap-2 text-xs text-slate-500 whitespace-nowrap">
+          <span data-testid="lesson-list-date">{formatDate(lesson.created_at)}</span>
+          {lesson.files && lesson.files.length > 0 && (
+            <span data-testid="lesson-list-file-count">{lesson.files.length} file{lesson.files.length !== 1 ? 's' : ''}</span>
+          )}
+          {lesson.total_file_size !== undefined && lesson.total_file_size > 0 && (
+            <span data-testid="lesson-list-file-size">{lesson.total_file_size.toFixed(1)} MB</span>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
