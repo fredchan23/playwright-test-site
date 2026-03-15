@@ -353,7 +353,7 @@ export default function LibraryPage() {
                 step={0.1}
                 values={fileSizeRange}
                 onChange={setFileSizeRange}
-                label="Total File Size"
+                label="Lesson File Size"
                 formatValue={(v) => `${v.toFixed(1)} MB`}
               />
             </div>
