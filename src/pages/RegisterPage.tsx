@@ -7,7 +7,6 @@ export default function RegisterPage() {
   const navigate = useNavigate();
   const { signUp } = useAuth();
   const [email, setEmail] = useState('');
-  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
@@ -36,10 +35,6 @@ export default function RegisterPage() {
       newErrors.email = 'Please enter a valid email address';
     }
 
-    if (!username) {
-      newErrors.username = 'Username is required';
-    }
-
     if (!password) {
       newErrors.password = 'Password is required';
     } else if (!validatePassword(password)) {
@@ -50,13 +45,11 @@ export default function RegisterPage() {
 
     if (Object.keys(newErrors).length === 0) {
       setLoading(true);
-      const { error } = await signUp(email, password, username);
+      const { error } = await signUp(email, password);
 
       if (error) {
         if (error.message.includes('already registered')) {
           setErrors({ email: 'This email is already registered' });
-        } else if (error.message.includes('username')) {
-          setErrors({ username: 'This username is already taken' });
         } else {
           setErrors({ form: error.message });
         }
@@ -101,29 +94,6 @@ export default function RegisterPage() {
               {errors.email && (
                 <p className="mt-1 text-sm text-red-600" data-testid="registration-email-error">
                   {errors.email}
-                </p>
-              )}
-            </div>
-
-            <div className="mb-4">
-              <label htmlFor="username" className="block text-sm font-medium text-slate-700 mb-2">
-                Username
-              </label>
-              <input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent ${
-                  errors.username ? 'border-red-500' : 'border-slate-300'
-                }`}
-                placeholder="johndoe"
-                data-testid="registration-username-input"
-                aria-label="Username"
-              />
-              {errors.username && (
-                <p className="mt-1 text-sm text-red-600" data-testid="registration-username-error">
-                  {errors.username}
                 </p>
               )}
             </div>
