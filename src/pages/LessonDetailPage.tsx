@@ -76,6 +76,12 @@ export default function LessonDetailPage() {
   };
 
   const loadThumbnails = async (filesList: LessonFile[]) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      console.error('No active session when loading thumbnails');
+      return;
+    }
+
     const imageFiles = filesList.filter(file => file.file_type.startsWith('image/'));
 
     const loadingState: Record<string, boolean> = {};
@@ -125,7 +131,16 @@ export default function LessonDetailPage() {
   };
 
   const getFileUrl = async (filePath: string) => {
-    const { data } = await supabase.storage.from('lesson-files').createSignedUrl(filePath, 3600);
+    const { data, error } = await supabase.storage.from('lesson-files').createSignedUrl(filePath, 3600);
+    if (error) {
+      console.error('Error creating signed URL:', {
+        error,
+        message: error.message,
+        filePath,
+        user: user?.id,
+        lesson: lesson?.id
+      });
+    }
     return data?.signedUrl;
   };
 
