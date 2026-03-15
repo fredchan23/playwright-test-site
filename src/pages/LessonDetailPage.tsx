@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { ArrowLeft, Edit, Trash2, Share2, FileText, Image as ImageIcon, Download, X } from 'lucide-react';
+import { ArrowLeft, CreditCard as Edit, Trash2, Share2, FileText, Image as ImageIcon, Download, X } from 'lucide-react';
 
 interface Lesson {
   id: string;
@@ -35,6 +35,8 @@ export default function LessonDetailPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [thumbnailUrls, setThumbnailUrls] = useState<Record<string, string>>({});
+  const [loadingThumbnails, setLoadingThumbnails] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (id) {
@@ -67,9 +69,45 @@ export default function LessonDetailPage() {
 
     if (filesResult.data) {
       setFiles(filesResult.data);
+      loadThumbnails(filesResult.data);
     }
 
     setLoading(false);
+  };
+
+  const loadThumbnails = async (filesList: LessonFile[]) => {
+    const imageFiles = filesList.filter(file => file.file_type.startsWith('image/'));
+
+    const loadingState: Record<string, boolean> = {};
+    imageFiles.forEach(file => {
+      loadingState[file.id] = true;
+    });
+    setLoadingThumbnails(loadingState);
+
+    const thumbnailPromises = imageFiles.map(async (file) => {
+      try {
+        const url = await getFileUrl(file.storage_path);
+        return { id: file.id, url: url || '' };
+      } catch (error) {
+        console.error(`Failed to load thumbnail for ${file.filename}:`, error);
+        return { id: file.id, url: '' };
+      }
+    });
+
+    const results = await Promise.all(thumbnailPromises);
+
+    const urlsMap: Record<string, string> = {};
+    const loadingMap: Record<string, boolean> = {};
+
+    results.forEach(({ id, url }) => {
+      if (url) {
+        urlsMap[id] = url;
+      }
+      loadingMap[id] = false;
+    });
+
+    setThumbnailUrls(urlsMap);
+    setLoadingThumbnails(loadingMap);
   };
 
   const handleDelete = async () => {
@@ -240,11 +278,24 @@ export default function LessonDetailPage() {
                 >
                   <div
                     onClick={() => handleFileClick(file)}
-                    className="cursor-pointer mb-3"
+                    className="cursor-pointer mb-3 group"
                   >
                     {file.file_type.startsWith('image/') ? (
-                      <div className="aspect-video bg-slate-100 rounded flex items-center justify-center overflow-hidden">
-                        <ImageIcon className="w-12 h-12 text-slate-400" />
+                      <div className="aspect-video bg-slate-100 rounded flex items-center justify-center overflow-hidden relative">
+                        {loadingThumbnails[file.id] ? (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-400"></div>
+                          </div>
+                        ) : thumbnailUrls[file.id] ? (
+                          <img
+                            src={thumbnailUrls[file.id]}
+                            alt={file.filename}
+                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <ImageIcon className="w-12 h-12 text-slate-400" />
+                        )}
                       </div>
                     ) : (
                       <div className="aspect-video bg-slate-100 rounded flex items-center justify-center">
