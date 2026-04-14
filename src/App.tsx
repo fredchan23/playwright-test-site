@@ -7,6 +7,7 @@ import LibraryPage from './pages/LibraryPage';
 import CreateLessonPage from './pages/CreateLessonPage';
 import LessonDetailPage from './pages/LessonDetailPage';
 import EditLessonPage from './pages/EditLessonPage';
+import SettingsPage from './pages/SettingsPage';
 
 function App() {
   return (
@@ -44,6 +45,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <EditLessonPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <SettingsPage />
               </ProtectedRoute>
             }
           />

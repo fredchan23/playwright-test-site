@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { ArrowLeft, CreditCard as Edit, Trash2, Share2, FileText, Image as ImageIcon, Download, X } from 'lucide-react';
+import LessonQAPanel from '../components/LessonQAPanel';
 
 interface Lesson {
   id: string;
@@ -369,6 +370,8 @@ export default function LessonDetailPage() {
             </div>
           )}
         </div>
+
+        <LessonQAPanel lessonId={lesson.id} />
       </main>
 
       {showDeleteDialog && (

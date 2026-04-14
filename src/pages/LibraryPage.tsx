@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Plus, Search, LogOut, FileText, X, SlidersHorizontal, LayoutGrid, List } from 'lucide-react';
+import { Plus, Search, LogOut, FileText, X, SlidersHorizontal, LayoutGrid, List, Settings } from 'lucide-react';
 import RangeSlider from '../components/RangeSlider';
 
 interface Genre {
@@ -35,7 +35,7 @@ type ViewMode = 'card' | 'list';
 
 export default function LibraryPage() {
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const { user, isAdmin, signOut } = useAuth();
   const [ownLessons, setOwnLessons] = useState<Lesson[]>([]);
   const [sharedLessons, setSharedLessons] = useState<Lesson[]>([]);
   const [genres, setGenres] = useState<Genre[]>([]);
@@ -231,14 +231,26 @@ export default function LibraryPage() {
               <FileText className="w-8 h-8 text-slate-700" />
               <h1 className="text-xl font-bold text-slate-900">StudyNode - Library</h1>
             </div>
-            <button
-              onClick={handleSignOut}
-              className="flex items-center space-x-2 px-4 py-2 text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
-              data-testid="library-logout-button"
-            >
-              <LogOut className="w-5 h-5" />
-              <span>Logout</span>
-            </button>
+            <div className="flex items-center space-x-2">
+              {isAdmin && (
+                <button
+                  onClick={() => navigate('/settings')}
+                  className="flex items-center space-x-2 px-4 py-2 text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+                  data-testid="library-settings-button"
+                >
+                  <Settings className="w-5 h-5" />
+                  <span>Settings</span>
+                </button>
+              )}
+              <button
+                onClick={handleSignOut}
+                className="flex items-center space-x-2 px-4 py-2 text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+                data-testid="library-logout-button"
+              >
+                <LogOut className="w-5 h-5" />
+                <span>Logout</span>
+              </button>
+            </div>
           </div>
         </div>
       </header>
