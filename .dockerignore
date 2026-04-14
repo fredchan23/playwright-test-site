@@ -16,3 +16,4 @@ yarn-error.log*
 *.swo
 coverage
 .bolt
+supabase
