@@ -229,7 +229,7 @@ export default function LibraryPage() {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-3">
               <FileText className="w-8 h-8 text-slate-700" />
-              <h1 className="text-xl font-bold text-slate-900">LMS - Playwright Training</h1>
+              <h1 className="text-xl font-bold text-slate-900">StudyNode - Library</h1>
             </div>
             <button
               onClick={handleSignOut}
