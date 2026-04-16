@@ -419,7 +419,9 @@ function ShareDialog({ lessonId, onClose }: { lessonId: string; onClose: () => v
       .eq('owner_id', user!.id);
 
     if (data) {
-      setSharedUsers(data.map((item: any) => item.shared_with).filter(Boolean));
+      type SharedWithRow = { shared_with: { id: string; email: string; username: string } | null };
+      const rows = data as unknown as SharedWithRow[];
+      setSharedUsers(rows.map((item) => item.shared_with).filter((u): u is { id: string; email: string; username: string } => Boolean(u)));
     }
   };
 

@@ -106,7 +106,7 @@ export default function LibraryPage() {
       setFileSizeRange([0, maxSize]);
 
       if (ownLessonsResult.data) {
-        const lessonsWithFiles = ownLessonsResult.data.map((lesson: any) => {
+        const lessonsWithFiles = ownLessonsResult.data.map((lesson) => {
           const files = lessonFilesMap.get(lesson.id) || [];
           const total_file_size = files.reduce((sum, file) => sum + file.file_size, 0) / (1024 * 1024);
           return { ...lesson, files, total_file_size };
@@ -116,8 +116,10 @@ export default function LibraryPage() {
       }
 
       if (sharedLessonsResult.data) {
-        const shared = sharedLessonsResult.data
-          .map((share: any) => {
+        type SharedLessonRow = { lesson: Lesson | null };
+        const rows = sharedLessonsResult.data as unknown as SharedLessonRow[];
+        const shared = rows
+          .map((share) => {
             if (!share.lesson) return null;
             const files = lessonFilesMap.get(share.lesson.id) || [];
             const total_file_size = files.reduce((sum, file) => sum + file.file_size, 0) / (1024 * 1024);
@@ -128,8 +130,8 @@ export default function LibraryPage() {
               total_file_size,
             };
           })
-          .filter(Boolean);
-        setSharedLessons(shared);
+          .filter((l): l is NonNullable<typeof l> => l !== null);
+        setSharedLessons(shared as Lesson[]);
         extractTags([...ownLessonsResult.data || [], ...shared]);
       }
     } catch {

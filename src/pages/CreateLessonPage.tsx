@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { ArrowLeft, Upload, X, FileText, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, Upload, X, FileText } from 'lucide-react';
 
 interface Genre {
   id: string;
@@ -102,7 +102,7 @@ export default function CreateLessonPage() {
     const dataTransfer = new DataTransfer();
     droppedFiles.forEach(file => dataTransfer.items.add(file));
     fileInput.files = dataTransfer.files;
-    handleFileSelect({ target: fileInput } as any);
+    handleFileSelect({ target: fileInput } as React.ChangeEvent<HTMLInputElement>);
   };
 
   const removeFile = (index: number) => {

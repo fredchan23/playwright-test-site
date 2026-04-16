@@ -23,12 +23,7 @@ dist-ssr
 .env
 CLAUDE.md
 .claude/settings.json
-SPEC.md
-docs/decisions/ADR-001-lesson-qa-feature.md
-.gitignore
-docs/decisions/ADR-002-long-context-rag-pivot.md
+docs/
+tasks/
 package-lock.json
-tasks/playwright-plan.md
-.gitignore
 package.json
-tasks/playwright-todo.md
