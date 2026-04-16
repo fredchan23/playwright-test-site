@@ -36,7 +36,7 @@ export default function EditLessonPage() {
   const [tags, setTags] = useState<string[]>([]);
   const [newFiles, setNewFiles] = useState<UploadedFile[]>([]);
   const [existingFiles, setExistingFiles] = useState<ExistingFile[]>([]);
-  const [filesToDelete, setFilesToDelete] = useState<string[]>([]);
+  const [filesToDelete, setFilesToDelete] = useState<ExistingFile[]>([]);
   const [genres, setGenres] = useState<Genre[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
@@ -144,7 +144,8 @@ export default function EditLessonPage() {
   };
 
   const removeExistingFile = (fileId: string) => {
-    setFilesToDelete([...filesToDelete, fileId]);
+    const file = existingFiles.find(f => f.id === fileId);
+    if (file) setFilesToDelete([...filesToDelete, file]);
     setExistingFiles(existingFiles.filter(f => f.id !== fileId));
     setHasChanges(true);
   };
@@ -179,12 +180,9 @@ export default function EditLessonPage() {
 
         if (updateError) throw updateError;
 
-        for (const fileId of filesToDelete) {
-          const file = existingFiles.find(f => f.id === fileId);
-          if (file) {
-            await supabase.storage.from('lesson-files').remove([file.storage_path]);
-            await supabase.from('lesson_files').delete().eq('id', fileId);
-          }
+        for (const file of filesToDelete) {
+          await supabase.storage.from('lesson-files').remove([file.storage_path]);
+          await supabase.from('lesson_files').delete().eq('id', file.id);
         }
 
         for (const uploadedFile of newFiles) {
@@ -210,8 +208,7 @@ export default function EditLessonPage() {
         }
 
         navigate(`/lessons/${id}`);
-      } catch (error) {
-        console.error('Error updating lesson:', error);
+      } catch {
         setErrors({ form: 'Failed to update lesson. Please try again.' });
         setLoading(false);
       }
