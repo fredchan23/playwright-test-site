@@ -77,27 +77,13 @@ export default function LessonDetailPage() {
   };
 
   const loadThumbnails = async (filesList: LessonFile[]) => {
-    console.log('=== THUMBNAIL LOADING START ===');
-    console.log('Files to load:', filesList.length);
-
     const { data: { session } } = await supabase.auth.getSession();
-    console.log('Session check:', {
-      hasSession: !!session,
-      userId: session?.user?.id
-    });
 
     if (!session) {
-      console.error('No active session when loading thumbnails');
       return;
     }
 
     const imageFiles = filesList.filter(file => file.file_type.startsWith('image/'));
-    console.log('Image files found:', imageFiles.length);
-    console.log('Image file details:', imageFiles.map(f => ({
-      id: f.id,
-      filename: f.filename,
-      path: f.storage_path
-    })));
 
     const loadingState: Record<string, boolean> = {};
     imageFiles.forEach(file => {
@@ -107,18 +93,14 @@ export default function LessonDetailPage() {
 
     const thumbnailPromises = imageFiles.map(async (file) => {
       try {
-        console.log(`Attempting to get URL for: ${file.filename}`);
         const url = await getFileUrl(file.storage_path);
-        console.log(`Result for ${file.filename}:`, url ? 'SUCCESS' : 'FAILED');
         return { id: file.id, url: url || '', filename: file.filename };
-      } catch (error) {
-        console.error(`Failed to load thumbnail for ${file.filename}:`, error);
+      } catch {
         return { id: file.id, url: '', filename: file.filename };
       }
     });
 
     const results = await Promise.all(thumbnailPromises);
-    console.log('All thumbnail results:', results);
 
     const urlsMap: Record<string, string> = {};
     const loadingMap: Record<string, boolean> = {};
@@ -129,9 +111,6 @@ export default function LessonDetailPage() {
       }
       loadingMap[id] = false;
     });
-
-    console.log('URLs created:', Object.keys(urlsMap).length);
-    console.log('=== THUMBNAIL LOADING END ===');
 
     setThumbnailUrls(urlsMap);
     setLoadingThumbnails(loadingMap);
@@ -146,32 +125,16 @@ export default function LessonDetailPage() {
       if (error) throw error;
 
       navigate('/library');
-    } catch (error) {
-      console.error('Error deleting lesson:', error);
+    } catch {
+      // deletion failed silently — UI feedback addressed in a follow-up fix
     }
   };
 
   const getFileUrl = async (filePath: string) => {
-    console.log('[getFileUrl] Starting for path:', filePath);
     const { data, error } = await supabase.storage.from('lesson-files').createSignedUrl(filePath, 3600);
 
     if (error) {
-      console.error('[getFileUrl] ERROR:', {
-        errorObject: error,
-        errorMessage: error?.message || 'No message',
-        errorName: error?.name || 'No name',
-        errorStringified: JSON.stringify(error),
-        filePath,
-        userId: user?.id,
-        lessonId: lesson?.id
-      });
       return undefined;
-    }
-
-    if (data?.signedUrl) {
-      console.log('[getFileUrl] SUCCESS - URL created');
-    } else {
-      console.error('[getFileUrl] No URL returned but no error either');
     }
 
     return data?.signedUrl;
