@@ -40,6 +40,7 @@ export default function LibraryPage() {
   const [sharedLessons, setSharedLessons] = useState<Lesson[]>([]);
   const [genres, setGenres] = useState<Genre[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -60,73 +61,82 @@ export default function LibraryPage() {
     if (!user) return;
 
     setLoading(true);
+    setLoadError(false);
 
-    const [genresResult, ownLessonsResult, sharedLessonsResult, filesResult] = await Promise.all([
-      supabase.from('genres').select('*').order('name'),
-      supabase
-        .from('lessons')
-        .select('*, genre:genres(*)')
-        .eq('owner_id', user.id)
-        .order('created_at', { ascending: false }),
-      supabase
-        .from('lesson_shares')
-        .select('lesson:lessons(*, genre:genres(*), owner:profiles(username))')
-        .eq('shared_with_id', user.id),
-      supabase.from('lesson_files').select('id, lesson_id, file_size'),
-    ]);
+    try {
+      const [genresResult, ownLessonsResult, sharedLessonsResult, filesResult] = await Promise.all([
+        supabase.from('genres').select('*').order('name'),
+        supabase
+          .from('lessons')
+          .select('*, genre:genres(*)')
+          .eq('owner_id', user.id)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('lesson_shares')
+          .select('lesson:lessons(*, genre:genres(*), owner:profiles(username))')
+          .eq('shared_with_id', user.id),
+        supabase.from('lesson_files').select('id, lesson_id, file_size'),
+      ]);
 
-    if (genresResult.data) {
-      setGenres(genresResult.data);
-    }
+      if (genresResult.error) throw genresResult.error;
+      if (ownLessonsResult.error) throw ownLessonsResult.error;
+      if (sharedLessonsResult.error) throw sharedLessonsResult.error;
 
-    const lessonFilesMap = new Map<string, LessonFile[]>();
-    let maxSize = 10;
+      if (genresResult.data) {
+        setGenres(genresResult.data);
+      }
 
-    if (filesResult.data) {
-      filesResult.data.forEach((file: LessonFile) => {
-        if (!lessonFilesMap.has(file.lesson_id)) {
-          lessonFilesMap.set(file.lesson_id, []);
-        }
-        lessonFilesMap.get(file.lesson_id)!.push(file);
-        const fileSizeMB = file.file_size / (1024 * 1024);
-        if (fileSizeMB > maxSize) {
-          maxSize = Math.ceil(fileSizeMB);
-        }
-      });
-    }
+      const lessonFilesMap = new Map<string, LessonFile[]>();
+      let maxSize = 10;
 
-    setMaxFileSize(maxSize);
-    setFileSizeRange([0, maxSize]);
+      if (filesResult.data) {
+        filesResult.data.forEach((file: LessonFile) => {
+          if (!lessonFilesMap.has(file.lesson_id)) {
+            lessonFilesMap.set(file.lesson_id, []);
+          }
+          lessonFilesMap.get(file.lesson_id)!.push(file);
+          const fileSizeMB = file.file_size / (1024 * 1024);
+          if (fileSizeMB > maxSize) {
+            maxSize = Math.ceil(fileSizeMB);
+          }
+        });
+      }
 
-    if (ownLessonsResult.data) {
-      const lessonsWithFiles = ownLessonsResult.data.map((lesson: any) => {
-        const files = lessonFilesMap.get(lesson.id) || [];
-        const total_file_size = files.reduce((sum, file) => sum + file.file_size, 0) / (1024 * 1024);
-        return { ...lesson, files, total_file_size };
-      });
-      setOwnLessons(lessonsWithFiles);
-      extractTags(lessonsWithFiles);
-    }
+      setMaxFileSize(maxSize);
+      setFileSizeRange([0, maxSize]);
 
-    if (sharedLessonsResult.data) {
-      const shared = sharedLessonsResult.data
-        .map((share: any) => {
-          if (!share.lesson) return null;
-          const files = lessonFilesMap.get(share.lesson.id) || [];
+      if (ownLessonsResult.data) {
+        const lessonsWithFiles = ownLessonsResult.data.map((lesson: any) => {
+          const files = lessonFilesMap.get(lesson.id) || [];
           const total_file_size = files.reduce((sum, file) => sum + file.file_size, 0) / (1024 * 1024);
-          return {
-            ...share.lesson,
-            shared_by: share.lesson.owner?.username,
-            files,
-            total_file_size,
-          };
-        })
-        .filter(Boolean);
-      setSharedLessons(shared);
-      extractTags([...ownLessonsResult.data || [], ...shared]);
-    }
+          return { ...lesson, files, total_file_size };
+        });
+        setOwnLessons(lessonsWithFiles);
+        extractTags(lessonsWithFiles);
+      }
 
-    setLoading(false);
+      if (sharedLessonsResult.data) {
+        const shared = sharedLessonsResult.data
+          .map((share: any) => {
+            if (!share.lesson) return null;
+            const files = lessonFilesMap.get(share.lesson.id) || [];
+            const total_file_size = files.reduce((sum, file) => sum + file.file_size, 0) / (1024 * 1024);
+            return {
+              ...share.lesson,
+              shared_by: share.lesson.owner?.username,
+              files,
+              total_file_size,
+            };
+          })
+          .filter(Boolean);
+        setSharedLessons(shared);
+        extractTags([...ownLessonsResult.data || [], ...shared]);
+      }
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const extractTags = (lessons: Lesson[]) => {
@@ -217,6 +227,24 @@ export default function LibraryPage() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-900 mx-auto"></div>
           <p className="mt-4 text-slate-600">Loading library...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center" data-testid="library-error">
+        <div className="text-center">
+          <p className="text-slate-700 font-medium mb-2">Failed to load your library.</p>
+          <p className="text-slate-500 text-sm mb-6">Check your connection and try again.</p>
+          <button
+            onClick={loadData}
+            className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
+            data-testid="library-error-retry-button"
+          >
+            Retry
+          </button>
         </div>
       </div>
     );

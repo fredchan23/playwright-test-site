@@ -62,15 +62,16 @@ export default function LessonQAPanel({ lessonId }: LessonQAPanelProps) {
         return;
       }
 
-      // Load conversation history
+      // Load the most recent 50 messages, newest-first, then reverse for display
       const { data: history } = await supabase
         .from('lesson_qa_messages')
         .select('role, content')
         .eq('lesson_id', lessonId)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false })
+        .limit(50);
 
       if (history) {
-        setMessages(history as Message[]);
+        setMessages((history as Message[]).reverse());
       }
 
       setStatus('ready');

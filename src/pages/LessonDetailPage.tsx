@@ -34,6 +34,7 @@ export default function LessonDetailPage() {
   const [loading, setLoading] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteError, setDeleteError] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [thumbnailUrls, setThumbnailUrls] = useState<Record<string, string>>({});
@@ -126,12 +127,12 @@ export default function LessonDetailPage() {
 
       navigate('/library');
     } catch {
-      // deletion failed silently — UI feedback addressed in a follow-up fix
+      setDeleteError(true);
     }
   };
 
   const getFileUrl = async (filePath: string) => {
-    const { data, error } = await supabase.storage.from('lesson-files').createSignedUrl(filePath, 3600);
+    const { data, error } = await supabase.storage.from('lesson-files').createSignedUrl(filePath, 900);
 
     if (error) {
       return undefined;
@@ -341,10 +342,15 @@ export default function LessonDetailPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" data-testid="lesson-detail-delete-dialog">
           <div className="bg-white rounded-lg p-6 max-w-md w-full">
             <h3 className="text-lg font-semibold text-slate-900 mb-2">Delete Lesson</h3>
-            <p className="text-slate-600 mb-6">Are you sure you want to delete this lesson? This action cannot be undone.</p>
+            <p className="text-slate-600 mb-4">Are you sure you want to delete this lesson? This action cannot be undone.</p>
+            {deleteError && (
+              <p className="mb-4 text-sm text-red-600" data-testid="lesson-detail-delete-error">
+                Failed to delete lesson. Please try again.
+              </p>
+            )}
             <div className="flex space-x-3">
               <button
-                onClick={() => setShowDeleteDialog(false)}
+                onClick={() => { setShowDeleteDialog(false); setDeleteError(false); }}
                 className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
                 data-testid="lesson-detail-delete-cancel"
               >
@@ -463,15 +469,19 @@ function ShareDialog({ lessonId, onClose }: { lessonId: string; onClose: () => v
   };
 
   const handleRevoke = async (userId: string) => {
-    const { error } = await supabase
+    setError('');
+    const { error: revokeError } = await supabase
       .from('lesson_shares')
       .delete()
       .eq('lesson_id', lessonId)
       .eq('shared_with_id', userId);
 
-    if (!error) {
-      setSharedUsers(sharedUsers.filter(u => u.id !== userId));
+    if (revokeError) {
+      setError('Failed to remove user. Please try again.');
+      return;
     }
+
+    setSharedUsers(sharedUsers.filter(u => u.id !== userId));
   };
 
   return (
