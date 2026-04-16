@@ -25,5 +25,6 @@ CLAUDE.md
 .claude/settings.json
 docs/
 tasks/
+supabase/
 package-lock.json
 package.json
