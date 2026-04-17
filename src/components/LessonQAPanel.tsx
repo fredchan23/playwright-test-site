@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
+import rehypeSanitize from 'rehype-sanitize';
 import { supabase } from '../lib/supabase';
-import { MessageCircle, Send, Trash2, Loader2 } from 'lucide-react';
+import { MessageCircle, Send, Trash2, Loader2, Download } from 'lucide-react';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -55,9 +57,15 @@ export default function LessonQAPanel({ lessonId }: LessonQAPanelProps) {
 
       // Quick status check (returns immediately)
       const indexResp = await callFunction('lesson-qa-index', { lesson_id: lessonId }, token);
+
+      if (!indexResp.ok) {
+        setStatus('no_files');
+        return;
+      }
+
       const indexData = await indexResp.json();
 
-      if (!indexResp.ok || indexData.status === 'no_files') {
+      if (indexData.status === 'no_files') {
         setStatus('no_files');
         return;
       }
@@ -108,12 +116,17 @@ export default function LessonQAPanel({ lessonId }: LessonQAPanelProps) {
         { lesson_id: lessonId, question },
         session.access_token,
       );
-      const data = await resp.json();
 
       if (!resp.ok) {
         setMessages(prev => prev.slice(0, -1)); // remove placeholder
-        setError(data.error ?? 'Something went wrong. Please try again.');
+        let errorMsg = 'Something went wrong. Please try again.';
+        try {
+          const data = await resp.json();
+          errorMsg = data.error ?? errorMsg;
+        } catch { /* non-JSON error body — keep default message */ }
+        setError(errorMsg);
       } else {
+        const data = await resp.json();
         setMessages(prev => [
           ...prev.slice(0, -1),
           { role: 'assistant', content: data.answer },
@@ -127,8 +140,24 @@ export default function LessonQAPanel({ lessonId }: LessonQAPanelProps) {
     }
   };
 
+  const handleSaveMd = () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const filename = `lesson-${lessonId}-chat-${today}.md`;
+    const body = messages
+      .map(m => m.role === 'user' ? `**You:** ${m.content}` : `**Assistant:** ${m.content}`)
+      .join('\n\n');
+    const content = `# Lesson Chat Session\n*Exported: ${today}*\n\n${body}`;
+    const blob = new Blob([content], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleClear = async () => {
-    if (!window.confirm('Clear your conversation history for this lesson?')) return;
+    if (!window.confirm('Clear your conversation history for this lesson?\n\nRemember to Save your chat first if you want to keep it.')) return;
 
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
@@ -154,14 +183,24 @@ export default function LessonQAPanel({ lessonId }: LessonQAPanelProps) {
           <h2 className="text-base font-semibold text-slate-900">Ask this lesson</h2>
         </div>
         {status === 'ready' && messages.length > 0 && (
-          <button
-            onClick={handleClear}
-            className="flex items-center space-x-1 text-xs text-slate-500 hover:text-red-600 transition-colors"
-            data-testid="lesson-qa-clear-button"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span>Clear</span>
-          </button>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={handleSaveMd}
+              className="flex items-center space-x-1 text-xs text-slate-500 hover:text-slate-900 transition-colors"
+              data-testid="lesson-qa-save-md-button"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Save</span>
+            </button>
+            <button
+              onClick={handleClear}
+              className="flex items-center space-x-1 text-xs text-slate-500 hover:text-red-600 transition-colors"
+              data-testid="lesson-qa-clear-button"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Clear</span>
+            </button>
+          </div>
         )}
       </div>
 
@@ -201,15 +240,41 @@ export default function LessonQAPanel({ lessonId }: LessonQAPanelProps) {
                     className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                     data-testid={`lesson-qa-message-${idx}`}
                   >
-                    <div
-                      className={`max-w-[80%] rounded-lg px-4 py-2 text-sm whitespace-pre-wrap ${
-                        msg.role === 'user'
-                          ? 'bg-slate-900 text-white'
-                          : 'bg-slate-100 text-slate-800'
-                      }`}
-                    >
-                      {msg.content}
-                    </div>
+                    {msg.role === 'user' ? (
+                      <div className="max-w-[80%] rounded-lg px-4 py-2 text-sm whitespace-pre-wrap bg-slate-900 text-white">
+                        {msg.content}
+                      </div>
+                    ) : (
+                      <div className="max-w-[80%] rounded-lg px-4 py-2 text-sm bg-slate-100 text-slate-800 prose prose-sm prose-slate max-w-none">
+                        <ReactMarkdown
+                          rehypePlugins={[rehypeSanitize]}
+                          components={{
+                            a: ({ children, href }) => (
+                              <a href={href} target="_blank" rel="noreferrer" className="underline text-blue-600 hover:text-blue-800">
+                                {children}
+                              </a>
+                            ),
+                            code: ({ children, className }) => {
+                              const isBlock = className?.includes('language-');
+                              return isBlock ? (
+                                <code className={className}>{children}</code>
+                              ) : (
+                                <code className="font-mono text-sm bg-slate-800 text-slate-100 rounded px-1">
+                                  {children}
+                                </code>
+                              );
+                            },
+                            pre: ({ children }) => (
+                              <pre className="bg-slate-800 text-slate-100 rounded p-3 overflow-x-auto font-mono text-sm my-2">
+                                {children}
+                              </pre>
+                            ),
+                          }}
+                        >
+                          {msg.content}
+                        </ReactMarkdown>
+                      </div>
+                    )}
                   </div>
                 ))}
                 <div ref={bottomRef} />

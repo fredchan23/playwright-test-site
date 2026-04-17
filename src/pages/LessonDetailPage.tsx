@@ -1,9 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import * as pdfjsLib from 'pdfjs-dist';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { ArrowLeft, CreditCard as Edit, Trash2, Share2, FileText, Image as ImageIcon, Download, X } from 'lucide-react';
 import LessonQAPanel from '../components/LessonQAPanel';
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url,
+).toString();
+
+const isPdf = (file: { file_type: string }) => file.file_type === 'application/pdf';
 
 interface Lesson {
   id: string;
@@ -85,23 +93,42 @@ export default function LessonDetailPage() {
     }
 
     const imageFiles = filesList.filter(file => file.file_type.startsWith('image/'));
+    const pdfFiles = filesList.filter(isPdf);
+    const previewFiles = [...imageFiles, ...pdfFiles];
 
     const loadingState: Record<string, boolean> = {};
-    imageFiles.forEach(file => {
+    previewFiles.forEach(file => {
       loadingState[file.id] = true;
     });
     setLoadingThumbnails(loadingState);
 
-    const thumbnailPromises = imageFiles.map(async (file) => {
+    const imagePromises = imageFiles.map(async (file) => {
       try {
         const url = await getFileUrl(file.storage_path);
-        return { id: file.id, url: url || '', filename: file.filename };
+        return { id: file.id, url: url || '' };
       } catch {
-        return { id: file.id, url: '', filename: file.filename };
+        return { id: file.id, url: '' };
       }
     });
 
-    const results = await Promise.all(thumbnailPromises);
+    const pdfPromises = pdfFiles.map(async (file) => {
+      try {
+        const signedUrl = await getFileUrl(file.storage_path);
+        if (!signedUrl) return { id: file.id, url: '' };
+        const pdf = await pdfjsLib.getDocument(signedUrl).promise;
+        const page = await pdf.getPage(1);
+        const viewport = page.getViewport({ scale: 1.0 });
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        await page.render({ canvasContext: canvas.getContext('2d')!, viewport, canvas }).promise;
+        return { id: file.id, url: canvas.toDataURL('image/png') };
+      } catch {
+        return { id: file.id, url: '' };
+      }
+    });
+
+    const results = await Promise.all([...imagePromises, ...pdfPromises]);
 
     const urlsMap: Record<string, string> = {};
     const loadingMap: Record<string, boolean> = {};
@@ -292,7 +319,7 @@ export default function LessonDetailPage() {
                     onClick={() => handleFileClick(file)}
                     className="cursor-pointer mb-3 group"
                   >
-                    {file.file_type.startsWith('image/') ? (
+                    {(file.file_type.startsWith('image/') || isPdf(file)) ? (
                       <div className="aspect-video bg-slate-100 rounded flex items-center justify-center overflow-hidden relative">
                         {loadingThumbnails[file.id] ? (
                           <div className="absolute inset-0 flex items-center justify-center">
@@ -304,9 +331,12 @@ export default function LessonDetailPage() {
                             alt={file.filename}
                             className="w-full h-full object-cover transition-transform group-hover:scale-105"
                             loading="lazy"
+                            data-testid={isPdf(file) ? `lesson-file-pdf-thumbnail-${file.id}` : undefined}
                           />
                         ) : (
-                          <ImageIcon className="w-12 h-12 text-slate-400" />
+                          file.file_type.startsWith('image/')
+                            ? <ImageIcon className="w-12 h-12 text-slate-400" />
+                            : <FileText className="w-12 h-12 text-slate-400" />
                         )}
                       </div>
                     ) : (
