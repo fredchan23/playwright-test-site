@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Session Protocol
+
+At the end of every session, before closing:
+1. Document any new bugs fixed, patterns discovered, or gotchas encountered in the relevant section of this file.
+2. Update the **Outstanding (next session)** section to reflect current state.
+
 ## Commands
 
 ```bash
@@ -152,6 +158,8 @@ The PDF.js worker is emitted by Vite as a `.mjs` file (`pdf.worker.min-*.mjs`). 
 **Playwright race: clicking toggle before `loadConfig` resolves:** After `page.reload()`, React mounts `SettingsPage` with its initial state (`qaEnabled = true`) and kicks off `loadConfig()` asynchronously. If Playwright clicks the toggle before `loadConfig` sets the actual DB value, `handleToggle` fires with the wrong `qaEnabled` and updates in the wrong direction. Fix: always `await expect(toggle).toHaveAttribute('aria-checked', '<expected-loaded-value>')` after `reload()` before clicking. This gates the click on `loadConfig` completing.
 
 **Playwright race: DB assertion before `handleToggle` save completes:** `click()` returns as soon as the DOM event fires — not when the async `handleToggle` save finishes. Asserting the DB value immediately after `click()` races with the in-flight `supabase.update()`. Fix: `await expect(toggle).toHaveAttribute('aria-checked', '<new-value>')` between `click()` and the DB check. Since `setQaEnabled` is only called after the `await supabase.update()` resolves, this gate confirms the save has completed before querying the DB.
+
+**Playwright race: `loadLessonData()` overwrites filled title in `EditLessonPage` (`e2e/specs/lesson-crud.spec.ts`):** The edit-metadata test filled the title input immediately after `goto()`, but `loadLessonData()` was still in-flight. When its async Supabase fetch completed, `setTitle(originalTitle)` overwrote the test's fill. `toHaveValue(updatedTitle)` had already passed (DOM matched), so the overwrite happened silently before `submit()`. The save therefore sent the old title to Supabase. Fix: add `await expect(titleInput).toHaveValue(lesson.title)` before `fill()` to gate on `loadLessonData()` completing first. Rule: after `goto()` on any form page that loads data async, wait for the inputs to reflect the fetched values before interacting.
 
 ### Outstanding (next session)
 

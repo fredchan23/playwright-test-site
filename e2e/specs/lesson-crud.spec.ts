@@ -91,6 +91,9 @@ test('edit metadata → updated title confirmed on detail page', async ({
   const updatedTitle = e2eTitle(`Edited-${Date.now()}`);
   try {
     await editLessonPage.goto(lesson.id);
+    // Wait for loadLessonData() to populate the form before filling — prevents
+    // the async Supabase fetch from overwriting our fill after the fact.
+    await expect(editLessonPage.titleInput).toHaveValue(lesson.title, { timeout: 10_000 });
     await editLessonPage.titleInput.fill(updatedTitle);
     await expect(editLessonPage.titleInput).toHaveValue(updatedTitle);
     await editLessonPage.submit();
