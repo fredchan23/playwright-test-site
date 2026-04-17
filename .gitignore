@@ -21,8 +21,13 @@ dist-ssr
 *.sln
 *.sw?
 .env
-CLAUDE.md
 .claude/settings.json
 docs/
 tasks/
 supabase/
+
+# Playwright
+e2e/.auth/
+e2e/.env.test
+playwright-report/
+test-results/
