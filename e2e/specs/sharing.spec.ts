@@ -113,11 +113,11 @@ test('RLS visibility — user B sees shared lesson; after revoke it is gone', as
     await adminPage.reload();
     await expect(adminPage.getByTestId('library-shared-lessons-heading')).not.toBeVisible({ timeout: 10_000 });
 
-    // Direct navigation should not show the lesson
+    // Direct navigation should not show the lesson — wait for redirect or not-found
     await adminPage.goto(`/lessons/${lesson.id}`);
-    // Should either redirect away or show not-found
-    const urlOrContent = adminPage.url() + await adminPage.content();
-    expect(urlOrContent.includes('/library') || urlOrContent.includes('not found') || urlOrContent.includes('Lesson not found')).toBeTruthy();
+    await expect(
+      adminPage.locator('text=Lesson not found').or(adminPage.locator('[data-testid="library-my-lessons-heading"]'))
+    ).toBeVisible({ timeout: 10_000 });
 
     await adminContext.close();
   } finally {

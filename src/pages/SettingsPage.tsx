@@ -6,17 +6,18 @@ import { ArrowLeft, Settings } from 'lucide-react';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
+  const { isAdmin, loading } = useAuth();
   const [qaEnabled, setQaEnabled] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    if (loading) return;
     if (!isAdmin) {
       navigate('/library', { replace: true });
       return;
     }
     loadConfig();
-  }, [isAdmin, navigate]);
+  }, [isAdmin, loading, navigate]);
 
   const loadConfig = async () => {
     const { data } = await supabase

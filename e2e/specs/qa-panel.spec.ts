@@ -3,7 +3,7 @@ import { fileURLToPath } from 'url';
 import { test, expect } from '../fixtures/test-fixtures';
 import { createLesson, createLessonWithFile, deleteLesson } from '../helpers/lesson-factory';
 import { ensureQaEnabled, ensureQaDisabled, getQaEnabled } from '../helpers/qa-helpers';
-import { getUserIdByEmail } from '../helpers/supabase-admin';
+import { adminClient, getUserIdByEmail } from '../helpers/supabase-admin';
 import { TEST_REGULAR_USER_EMAIL, e2eTitle } from '../fixtures/test-data';
 
 const PDF_ASSET = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../assets/test-document.pdf');
@@ -101,10 +101,19 @@ test('clear history → message list empty', async ({
   lessonQAPanel,
   page,
 }) => {
-  const lesson = await createLesson(regularUserId, { title: e2eTitle(`QAClear-${Date.now()}`) });
+  // Clear button only renders when status=ready AND messages.length > 0.
+  // Use a PDF-bearing lesson so lesson-qa-index returns 'ready', then seed a message.
+  const lesson = await createLessonWithFile(regularUserId, PDF_ASSET, {
+    title: e2eTitle(`QAClear-${Date.now()}`),
+  });
   try {
+    await adminClient()
+      .from('lesson_qa_messages')
+      .insert({ lesson_id: lesson.id, user_id: regularUserId, role: 'user', content: 'Seeded question' });
+
     await lessonDetailPage.goto(lesson.id);
-    await expect(lessonQAPanel.panel).toBeVisible({ timeout: 15_000 });
+    // Wait for clear button — only visible once status=ready and messages are loaded
+    await expect(lessonQAPanel.clearButton).toBeVisible({ timeout: 20_000 });
 
     // Accept the confirm dialog when clearing
     page.on('dialog', (dialog) => dialog.accept());

@@ -91,8 +91,8 @@ test('edit metadata → updated title confirmed on detail page', async ({
   const updatedTitle = e2eTitle(`Edited-${Date.now()}`);
   try {
     await editLessonPage.goto(lesson.id);
-    await editLessonPage.titleInput.clear();
     await editLessonPage.titleInput.fill(updatedTitle);
+    await expect(editLessonPage.titleInput).toHaveValue(updatedTitle);
     await editLessonPage.submit();
 
     await expect(page).toHaveURL(/\/lessons\/[^/]+$/, { timeout: 15_000 });

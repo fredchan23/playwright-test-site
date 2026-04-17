@@ -450,6 +450,7 @@ export default function LibraryPage() {
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                   aria-label="Card view"
+                  aria-pressed={viewMode === 'card'}
                   data-testid="library-view-card-button"
                 >
                   <LayoutGrid className="w-5 h-5" />
@@ -462,6 +463,7 @@ export default function LibraryPage() {
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                   aria-label="List view"
+                  aria-pressed={viewMode === 'list'}
                   data-testid="library-view-list-button"
                 >
                   <List className="w-5 h-5" />
