@@ -21,6 +21,7 @@ export default defineConfig({
   projects: [
     {
       name: 'setup',
+      testDir: './e2e/fixtures',
       testMatch: /auth\.setup\.ts/,
       use: { ...devices['Desktop Chrome'] },
     },
