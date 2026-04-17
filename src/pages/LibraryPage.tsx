@@ -258,8 +258,13 @@ export default function LibraryPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-3">
-              <FileText className="w-8 h-8 text-slate-700" />
-              <h1 className="text-xl font-bold text-slate-900">StudyNode - Library</h1>
+              <div className="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center shrink-0">
+                <span className="text-white text-xs font-bold tracking-tight">SN</span>
+              </div>
+              <h1 className="flex items-baseline gap-2">
+                <span className="text-xl font-bold text-slate-900">StudyNode</span>
+                <span className="text-sm font-medium text-slate-400">Library</span>
+              </h1>
             </div>
             <div className="flex items-center space-x-2">
               {isAdmin && (
@@ -496,52 +501,61 @@ export default function LibraryPage() {
   );
 }
 
+const GENRE_COLORS: Record<string, { border: string; badge: string; dot: string }> = {
+  Programming: { border: 'border-t-blue-500',    badge: 'bg-blue-50 text-blue-700',    dot: 'bg-blue-500' },
+  Design:      { border: 'border-t-rose-500',    badge: 'bg-rose-50 text-rose-700',    dot: 'bg-rose-500' },
+  Business:    { border: 'border-t-emerald-500', badge: 'bg-emerald-50 text-emerald-700', dot: 'bg-emerald-500' },
+  Language:    { border: 'border-t-amber-500',   badge: 'bg-amber-50 text-amber-700',  dot: 'bg-amber-500' },
+  Science:     { border: 'border-t-violet-500',  badge: 'bg-violet-50 text-violet-700', dot: 'bg-violet-500' },
+  Mathematics: { border: 'border-t-indigo-500',  badge: 'bg-indigo-50 text-indigo-700', dot: 'bg-indigo-500' },
+  Arts:        { border: 'border-t-orange-500',  badge: 'bg-orange-50 text-orange-700', dot: 'bg-orange-500' },
+};
+const DEFAULT_GENRE_COLORS = { border: 'border-t-slate-400', badge: 'bg-slate-100 text-slate-700', dot: 'bg-slate-400' };
+
+function formatDate(dateString: string) {
+  return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 function LessonListItem({ lesson, isOwned }: { lesson: Lesson; isOwned: boolean }) {
   const navigate = useNavigate();
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
+  const colors = GENRE_COLORS[lesson.genre?.name ?? ''] ?? DEFAULT_GENRE_COLORS;
 
   return (
     <div
       onClick={() => navigate(`/lessons/${lesson.id}`)}
-      className="bg-white border border-slate-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
+      className="bg-white rounded-lg border border-slate-200 p-4 hover:border-slate-300 hover:shadow-sm transition-all cursor-pointer"
       data-testid={`library-lesson-list-${lesson.id}`}
     >
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+      <div className="flex items-center gap-3">
+        <div className={`hidden sm:block w-1 self-stretch rounded-full shrink-0 ${colors.dot}`} />
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between mb-2">
-            <div className="flex-1">
-              <h3 className="text-base font-semibold text-slate-900 mb-1" data-testid="lesson-list-title">
-                {lesson.title}
-              </h3>
-              {!isOwned && lesson.shared_by && (
-                <p className="text-xs text-slate-500 mb-2" data-testid="lesson-list-shared-by">
-                  Shared by {lesson.shared_by}
-                </p>
-              )}
-            </div>
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="text-sm font-semibold text-slate-900" data-testid="lesson-list-title">
+              {lesson.title}
+            </h3>
+            {!isOwned && (
+              <span className="shrink-0 px-2 py-0.5 bg-amber-50 text-amber-700 text-xs rounded-full font-medium border border-amber-200" data-testid="lesson-list-shared-by">
+                Shared{lesson.shared_by ? ` · ${lesson.shared_by}` : ''}
+              </span>
+            )}
           </div>
-          <p className="text-sm text-slate-600 mb-3 line-clamp-2" data-testid="lesson-list-description">
+          <p className="text-sm text-slate-500 line-clamp-1 mb-2" data-testid="lesson-list-description">
             {lesson.description}
           </p>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             {lesson.genre && (
-              <span className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded" data-testid="lesson-list-genre">
+              <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${colors.badge}`} data-testid="lesson-list-genre">
                 {lesson.genre.name}
               </span>
             )}
-            {lesson.tags && lesson.tags.length > 0 && (
-              lesson.tags.map(tag => (
-                <span key={tag} className="px-2 py-0.5 bg-slate-50 text-slate-600 text-xs rounded" data-testid="lesson-list-tag">
-                  {tag}
-                </span>
-              ))
-            )}
+            {lesson.tags?.map(tag => (
+              <span key={tag} className="px-2 py-0.5 border border-slate-200 text-slate-500 text-xs rounded-full" data-testid="lesson-list-tag">
+                {tag}
+              </span>
+            ))}
           </div>
         </div>
-        <div className="flex sm:flex-col items-end gap-2 text-xs text-slate-500 whitespace-nowrap">
+        <div className="flex flex-col items-end gap-1 text-xs text-slate-400 whitespace-nowrap shrink-0">
           <span data-testid="lesson-list-date">{formatDate(lesson.created_at)}</span>
           {lesson.files && lesson.files.length > 0 && (
             <span data-testid="lesson-list-file-count">{lesson.files.length} file{lesson.files.length !== 1 ? 's' : ''}</span>
@@ -557,47 +571,57 @@ function LessonListItem({ lesson, isOwned }: { lesson: Lesson; isOwned: boolean 
 
 function LessonCard({ lesson, isOwned }: { lesson: Lesson; isOwned: boolean }) {
   const navigate = useNavigate();
+  const colors = GENRE_COLORS[lesson.genre?.name ?? ''] ?? DEFAULT_GENRE_COLORS;
 
   return (
     <div
       onClick={() => navigate(`/lessons/${lesson.id}`)}
-      className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow cursor-pointer"
+      className={`bg-white rounded-lg border border-slate-200 border-t-4 ${colors.border} p-5 hover:border-slate-300 hover:shadow-md transition-all cursor-pointer flex flex-col`}
       data-testid={`library-lesson-card-${lesson.id}`}
     >
-      <div className="mb-3">
-        <h3 className="text-lg font-semibold text-slate-900 mb-1" data-testid="lesson-card-title">
-          {lesson.title}
-        </h3>
-        {!isOwned && lesson.shared_by && (
-          <p className="text-xs text-slate-500" data-testid="lesson-card-shared-by">
-            Shared by {lesson.shared_by}
-          </p>
-        )}
-      </div>
-      <p className="text-sm text-slate-600 mb-4 line-clamp-2" data-testid="lesson-card-description">
-        {lesson.description}
-      </p>
-      <div className="flex flex-wrap gap-2 mb-3">
-        {lesson.genre && (
-          <span className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded" data-testid="lesson-card-genre">
-            {lesson.genre.name}
-          </span>
-        )}
-      </div>
-      {lesson.tags && lesson.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {lesson.tags.slice(0, 3).map(tag => (
-            <span key={tag} className="px-2 py-0.5 bg-slate-50 text-slate-600 text-xs rounded" data-testid="lesson-card-tag">
-              {tag}
-            </span>
-          ))}
-          {lesson.tags.length > 3 && (
-            <span className="px-2 py-0.5 bg-slate-50 text-slate-600 text-xs rounded">
-              +{lesson.tags.length - 3}
+      <div className="flex-1 mb-3">
+        <div className="flex items-start justify-between gap-2 mb-1">
+          <h3 className="text-base font-semibold text-slate-900 leading-snug" data-testid="lesson-card-title">
+            {lesson.title}
+          </h3>
+          {!isOwned && (
+            <span className="shrink-0 px-2 py-0.5 bg-amber-50 text-amber-700 text-xs rounded-full font-medium border border-amber-200" data-testid="lesson-card-shared-by">
+              Shared
             </span>
           )}
         </div>
-      )}
+        {!isOwned && lesson.shared_by && (
+          <p className="text-xs text-slate-400 mb-1">by {lesson.shared_by}</p>
+        )}
+        <p className="text-sm text-slate-500 line-clamp-2" data-testid="lesson-card-description">
+          {lesson.description}
+        </p>
+      </div>
+
+      <div className="flex flex-wrap gap-1.5 mb-4">
+        {lesson.genre && (
+          <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${colors.badge}`} data-testid="lesson-card-genre">
+            {lesson.genre.name}
+          </span>
+        )}
+        {lesson.tags?.slice(0, 2).map(tag => (
+          <span key={tag} className="px-2 py-0.5 border border-slate-200 text-slate-500 text-xs rounded-full" data-testid="lesson-card-tag">
+            {tag}
+          </span>
+        ))}
+        {(lesson.tags?.length ?? 0) > 2 && (
+          <span className="px-2 py-0.5 border border-slate-200 text-slate-400 text-xs rounded-full">
+            +{lesson.tags!.length - 2}
+          </span>
+        )}
+      </div>
+
+      <div className="flex items-center justify-between pt-3 border-t border-slate-100 text-xs text-slate-400">
+        <span data-testid="lesson-card-date">{formatDate(lesson.created_at)}</span>
+        {lesson.files && lesson.files.length > 0 && (
+          <span data-testid="lesson-card-file-count">{lesson.files.length} file{lesson.files.length !== 1 ? 's' : ''}</span>
+        )}
+      </div>
     </div>
   );
 }
