@@ -125,6 +125,41 @@ The PDF.js worker is emitted by Vite as a `.mjs` file (`pdf.worker.min-*.mjs`). 
 
 **Critical gotcha:** A nested `types { }` block inside a location **replaces** nginx's entire default MIME type resolution for that location — it does not merge. Adding `.mjs` to the shared static-file block and nesting a `types` block there will cause all CSS files in that location to be served without `text/css`, breaking all page styling. Always use a dedicated location block for the MIME override.
 
+### Settings Toggle Not Persisting (2026-04-18 — Fixed)
+
+**Root cause:** `app_config` has RLS enabled with only a `SELECT` policy. The client-side `supabase.update()` in `SettingsPage` silently affected 0 rows (PostgREST returns success, not an error, when RLS blocks a write). The UI toggled locally but the DB was unchanged; re-visiting the page reloaded the original value.
+
+**Fix:** Added RLS UPDATE policy `"app_config_admin_update"` in migration `20260418000000_app_config_admin_update_policy.sql`, allowing `profiles.is_admin = true` users to update `app_config` directly. Applied manually via Supabase SQL Editor.
+
+**Gotcha to remember:** Supabase/PostgREST returns `{ error: null }` even when an UPDATE is blocked by RLS — it just affects 0 rows. Never assume a null `error` means the row was actually written. For write operations on RLS-protected tables, verify a policy exists for the authenticated role.
+
+### Playwright E2E Known Issues and Fixes (2026-04-17)
+
+**`SettingsPage` auth race condition:** The `useEffect` that redirects non-admins checked `!isAdmin` before `loading` resolved (isAdmin defaults to `false`). Fixed by guarding with `if (loading) return` in `src/pages/SettingsPage.tsx`. Always destructure `loading` from `useAuth()` before acting on `isAdmin`.
+
+**`aria-pressed` on view toggles:** `LibraryPage` view toggle buttons (`library-view-card-button`, `library-view-list-button`) now carry `aria-pressed={viewMode === 'card/list'}`. Tests should assert `toHaveAttribute('aria-pressed', 'true')` — not CSS classes — for view-mode state.
+
+**React 18 controlled input + Playwright:** Using `clear()` then `fill()` on a React 18 controlled input can leave stale component state when `submit()` fires immediately after. Pattern: use `fill()` alone, then `await expect(locator).toHaveValue(newValue)` to gate on state commit before clicking submit.
+
+**QA clear button visibility:** `lesson-qa-clear-button` only renders when `status === 'ready' && messages.length > 0`. Tests that click it must: (1) use a lesson with PDF files so `lesson-qa-index` returns `ready`, and (2) seed a `lesson_qa_messages` row via `adminClient()` before navigating.
+
+**`page.content()` is not reactive:** Calling `page.content()` immediately after `goto()` returns HTML before React renders async data. Always use `expect(locator).toBeVisible()` instead of string-matching `page.content()`.
+
+### Playwright E2E Fixes (2026-04-18)
+
+**`AuthContext` — `setLoading(false)` fires before `fetchIsAdmin` resolves (`src/contexts/AuthContext.tsx`):** The `getSession()` callback called `setLoading(false)` synchronously after starting `fetchIsAdmin`, so `SettingsPage`'s `useEffect` saw `loading=false, isAdmin=false` and redirected to `/library` before admin status was known. Fixed by making the callback `async` and `await`ing `fetchIsAdmin` before calling `setLoading(false)`. Rule: `loading` must remain `true` until ALL auth state (including profile flags) is resolved. `ProtectedRoute` already gates rendering on `loading`, so this also prevents SettingsPage from mounting before auth is ready.
+
+**Playwright race: clicking toggle before `loadConfig` resolves:** After `page.reload()`, React mounts `SettingsPage` with its initial state (`qaEnabled = true`) and kicks off `loadConfig()` asynchronously. If Playwright clicks the toggle before `loadConfig` sets the actual DB value, `handleToggle` fires with the wrong `qaEnabled` and updates in the wrong direction. Fix: always `await expect(toggle).toHaveAttribute('aria-checked', '<expected-loaded-value>')` after `reload()` before clicking. This gates the click on `loadConfig` completing.
+
+**Playwright race: DB assertion before `handleToggle` save completes:** `click()` returns as soon as the DOM event fires — not when the async `handleToggle` save finishes. Asserting the DB value immediately after `click()` races with the in-flight `supabase.update()`. Fix: `await expect(toggle).toHaveAttribute('aria-checked', '<new-value>')` between `click()` and the DB check. Since `setQaEnabled` is only called after the `await supabase.update()` resolves, this gate confirms the save has completed before querying the DB.
+
+### Outstanding (next session)
+
+- **All 45 local tests now passing** as of 2026-04-18.
+- **Cloud Build step 4 failing** (Playwright test step, `mcr.microsoft.com/playwright:v1.49.0-noble`). Image pulls successfully but the step fails. Likely causes to investigate:
+  - `BASE_URL` in the env file uses `https://${_SERVICE_NAME}-${_CLOUD_RUN_REGION}-run.app` — Cloud Run URLs have an unpredictable hash segment; the correct URL must be retrieved via `gcloud run services describe --format='value(status.url)'` after deploy.
+  - Verify secrets (`TEST_*` and `SUPABASE_SERVICE_ROLE_KEY`) are provisioned in Secret Manager under the expected names.
+
 ## Project Docs (git-ignored, local only)
 All specification and planning documents live in `docs/` and `tasks/` — both are git-ignored.
 - `docs/SPEC.md` — feature enhancement specifications

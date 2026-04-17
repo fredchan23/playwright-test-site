@@ -36,6 +36,7 @@ test('Q&A toggle: enabled → disabled; DB value verified', async ({
   await ensureQaEnabled();
   await settingsPage.goto();
   await settingsPage.qaToggle.click();
+  await expect(settingsPage.qaToggle).toHaveAttribute('aria-checked', 'false');
 
   // Verify DB
   const { data } = await adminClient()
@@ -54,8 +55,10 @@ test('Q&A toggle: disabled → enabled; DB value verified', async ({
   // Force disabled first
   await adminClient().from('app_config').upsert({ key: 'qa_enabled', value: 'false' });
   await settingsPage.page.reload();
+  await expect(settingsPage.qaToggle).toHaveAttribute('aria-checked', 'false');
 
   await settingsPage.qaToggle.click();
+  await expect(settingsPage.qaToggle).toHaveAttribute('aria-checked', 'true');
 
   const { data } = await adminClient()
     .from('app_config')

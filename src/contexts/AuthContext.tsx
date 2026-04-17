@@ -28,10 +28,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       const sessionUser = session?.user ?? null;
       setUser(sessionUser);
-      if (sessionUser) fetchIsAdmin(sessionUser.id);
+      if (sessionUser) await fetchIsAdmin(sessionUser.id);
       setLoading(false);
     });
 
