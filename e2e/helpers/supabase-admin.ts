@@ -23,3 +23,11 @@ export function adminClient(): SupabaseClient {
 
   return _client;
 }
+
+export async function getUserIdByEmail(email: string): Promise<string> {
+  const { data, error } = await adminClient().auth.admin.listUsers({ perPage: 1000 });
+  if (error) throw new Error(`getUserIdByEmail failed: ${error.message}`);
+  const user = data?.users?.find((u) => u.email === email);
+  if (!user) throw new Error(`No user found with email: ${email}`);
+  return user.id;
+}

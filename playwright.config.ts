@@ -3,7 +3,9 @@ import { defineConfig, devices } from '@playwright/test';
 const BASE_URL = process.env.BASE_URL ?? 'http://localhost:5173';
 
 export default defineConfig({
+  globalSetup: './e2e/fixtures/global-setup.ts',
   testDir: './e2e/specs',
+
   timeout: 30_000,
   expect: { timeout: 10_000 },
   fullyParallel: false,
@@ -32,7 +34,7 @@ export default defineConfig({
         storageState: 'e2e/.auth/regular-user.json',
       },
       dependencies: ['setup'],
-      testIgnore: /admin-settings\.spec\.ts/,
+      testIgnore: /admin-settings\.spec\.ts$/,
     },
     {
       name: 'chromium-admin',

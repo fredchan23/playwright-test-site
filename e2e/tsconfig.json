@@ -1,16 +1,15 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "lib": ["ES2020"],
-    "module": "CommonJS",
-    "moduleResolution": "node",
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "outDir": "dist",
-    "baseUrl": ".",
-    "paths": {}
+    "noEmit": true,
+    "baseUrl": "."
   },
   "include": ["./**/*.ts", "../playwright.config.ts"],
-  "exclude": ["dist", "../node_modules"]
+  "exclude": ["../node_modules"]
 }

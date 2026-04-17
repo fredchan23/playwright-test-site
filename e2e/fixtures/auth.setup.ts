@@ -1,6 +1,7 @@
 import { test as setup, expect } from '@playwright/test';
 import * as path from 'path';
 import * as fs from 'fs';
+import { fileURLToPath } from 'url';
 import {
   TEST_REGULAR_USER_EMAIL,
   TEST_REGULAR_USER_PASSWORD,
@@ -8,7 +9,8 @@ import {
   TEST_ADMIN_USER_PASSWORD,
 } from './test-data';
 
-const AUTH_DIR = path.resolve(__dirname, '../.auth');
+const _dir = path.dirname(fileURLToPath(import.meta.url));
+const AUTH_DIR = path.resolve(_dir, '../.auth');
 
 async function loginAndSave(
   page: import('@playwright/test').Page,
