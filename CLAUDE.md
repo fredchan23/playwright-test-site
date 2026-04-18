@@ -161,12 +161,20 @@ The PDF.js worker is emitted by Vite as a `.mjs` file (`pdf.worker.min-*.mjs`). 
 
 **Playwright race: `loadLessonData()` overwrites filled title in `EditLessonPage` (`e2e/specs/lesson-crud.spec.ts`):** The edit-metadata test filled the title input immediately after `goto()`, but `loadLessonData()` was still in-flight. When its async Supabase fetch completed, `setTitle(originalTitle)` overwrote the test's fill. `toHaveValue(updatedTitle)` had already passed (DOM matched), so the overwrite happened silently before `submit()`. The save therefore sent the old title to Supabase. Fix: add `await expect(titleInput).toHaveValue(lesson.title)` before `fill()` to gate on `loadLessonData()` completing first. Rule: after `goto()` on any form page that loads data async, wait for the inputs to reflect the fetched values before interacting.
 
+### Cloud Build Playwright Step — BASE_URL Fix (2026-04-18)
+
+**Root cause:** The `BASE_URL` was hardcoded as `https://${_SERVICE_NAME}-${_CLOUD_RUN_REGION}-run.app`, which is not the real Cloud Run URL format. Actual URLs look like `https://SERVICE_NAME-HASH-SHORT_REGION.a.run.app` with an unpredictable hash segment.
+
+**Fix:** Added a new step between `gcloud run deploy` and the Playwright step that calls `gcloud run services describe --format='value(status.url)'` and writes the result to `/workspace/service_url.txt`. The Playwright step then reads `SERVICE_URL=$(cat /workspace/service_url.txt)` and injects it into `e2e/.env.test`. Removed the now-unused `_CLOUD_RUN_REGION` substitution.
+
+**Additional fixes in same pass:**
+- Heredoc content moved to column 0 (unindented) to avoid accidental whitespace in the env file
+- Added `env: CI=true` to the Playwright step so `playwright.config.ts` picks up the `CI` flag (enables retries and HTML reporter)
+
 ### Outstanding (next session)
 
 - **All 45 local tests now passing** as of 2026-04-18.
-- **Cloud Build step 4 failing** (Playwright test step, `mcr.microsoft.com/playwright:v1.49.0-noble`). Image pulls successfully but the step fails. Likely causes to investigate:
-  - `BASE_URL` in the env file uses `https://${_SERVICE_NAME}-${_CLOUD_RUN_REGION}-run.app` — Cloud Run URLs have an unpredictable hash segment; the correct URL must be retrieved via `gcloud run services describe --format='value(status.url)'` after deploy.
-  - Verify secrets (`TEST_*` and `SUPABASE_SERVICE_ROLE_KEY`) are provisioned in Secret Manager under the expected names.
+- **Cloud Build step 4 fix committed** — needs a triggered build to confirm secrets (`TEST_*`, `SUPABASE_SERVICE_ROLE_KEY`) are provisioned in Secret Manager under the expected names.
 
 ## Project Docs (git-ignored, local only)
 All specification and planning documents live in `docs/` and `tasks/` — both are git-ignored.

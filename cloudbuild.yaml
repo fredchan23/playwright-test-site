@@ -34,29 +34,45 @@ steps:
       - --allow-unauthenticated
       - --port=8080
 
+  # Retrieve the actual Cloud Run URL (contains an unpredictable hash segment)
+  # and write it to /workspace so the Playwright step can use it.
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        gcloud run services describe ${_SERVICE_NAME} \
+          --region=${_REGION} \
+          --format='value(status.url)' > /workspace/service_url.txt
+        echo "Deployed to: $(cat /workspace/service_url.txt)"
+
   - name: 'mcr.microsoft.com/playwright:v1.49.0-noble'
     entrypoint: bash
     args:
       - '-c'
       - |
+        SERVICE_URL=$(cat /workspace/service_url.txt)
+
         # Write env file for factories / admin client
         cat > e2e/.env.test <<EOF
-        BASE_URL=https://${_SERVICE_NAME}-${_CLOUD_RUN_REGION}-run.app
-        TEST_REGULAR_USER_EMAIL=$$TEST_REGULAR_USER_EMAIL
-        TEST_REGULAR_USER_PASSWORD=$$TEST_REGULAR_USER_PASSWORD
-        TEST_ADMIN_USER_EMAIL=$$TEST_ADMIN_USER_EMAIL
-        TEST_ADMIN_USER_PASSWORD=$$TEST_ADMIN_USER_PASSWORD
-        SUPABASE_URL=$$SUPABASE_URL
-        SUPABASE_SERVICE_ROLE_KEY=$$SUPABASE_SERVICE_ROLE_KEY
-        EOF
+BASE_URL=${SERVICE_URL}
+TEST_REGULAR_USER_EMAIL=$$TEST_REGULAR_USER_EMAIL
+TEST_REGULAR_USER_PASSWORD=$$TEST_REGULAR_USER_PASSWORD
+TEST_ADMIN_USER_EMAIL=$$TEST_ADMIN_USER_EMAIL
+TEST_ADMIN_USER_PASSWORD=$$TEST_ADMIN_USER_PASSWORD
+SUPABASE_URL=$$SUPABASE_URL
+SUPABASE_SERVICE_ROLE_KEY=$$SUPABASE_SERVICE_ROLE_KEY
+EOF
 
         npm ci
         # Skip @slow LLM-dependent tests on PR builds
-        if [ "$_PR_BUILD" = "true" ]; then
+        if [ "${_PR_BUILD}" = "true" ]; then
           npx playwright test --grep-invert "@slow"
         else
           npx playwright test
         fi
+    env:
+      - 'CI=true'
     secretEnv:
       - 'TEST_REGULAR_USER_EMAIL'
       - 'TEST_REGULAR_USER_PASSWORD'
@@ -88,7 +104,6 @@ substitutions:
   _REGION: asia-southeast1
   _REPOSITORY: playwright-test-site
   _SERVICE_NAME: playwright-test-site
-  _CLOUD_RUN_REGION: asia-southeast1
   _PR_BUILD: 'false'
 
 options:
