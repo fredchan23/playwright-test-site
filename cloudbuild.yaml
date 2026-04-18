@@ -46,7 +46,7 @@ steps:
           --format='value(status.url)' > /workspace/service_url.txt
         echo "Deployed to: $(cat /workspace/service_url.txt)"
 
-  - name: 'mcr.microsoft.com/playwright:v1.49.0-noble'
+  - name: 'mcr.microsoft.com/playwright:v1.59.1-noble'
     entrypoint: bash
     args:
       - '-c'

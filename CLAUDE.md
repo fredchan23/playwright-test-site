@@ -171,6 +171,10 @@ The PDF.js worker is emitted by Vite as a `.mjs` file (`pdf.worker.min-*.mjs`). 
 - Heredoc content moved to column 0 (unindented) to avoid accidental whitespace in the env file
 - Added `env: CI=true` to the Playwright step so `playwright.config.ts` picks up the `CI` flag (enables retries and HTML reporter)
 
+### Cloud Build Playwright Image Version (gotcha)
+
+The Docker image tag in `cloudbuild.yaml` (`mcr.microsoft.com/playwright:vX.Y.Z-noble`) **must exactly match** the `@playwright/test` version in `package.json`. `npm ci` installs the version from `package-lock.json`; if the image ships a different Chromium build, Playwright refuses to launch with `Executable doesn't exist`. When bumping `@playwright/test`, update the image tag in lockstep.
+
 ### Outstanding (next session)
 
 - **All 45 local tests now passing** as of 2026-04-18.
