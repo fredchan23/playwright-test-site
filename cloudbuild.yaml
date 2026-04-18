@@ -55,7 +55,7 @@ steps:
 
         # Write env file for factories / admin client
         cat > e2e/.env.test <<EOF
-        BASE_URL=${SERVICE_URL}
+        BASE_URL=$$SERVICE_URL
         TEST_REGULAR_USER_EMAIL=$$TEST_REGULAR_USER_EMAIL
         TEST_REGULAR_USER_PASSWORD=$$TEST_REGULAR_USER_PASSWORD
         TEST_ADMIN_USER_EMAIL=$$TEST_ADMIN_USER_EMAIL
