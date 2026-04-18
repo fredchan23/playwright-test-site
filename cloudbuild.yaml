@@ -95,7 +95,7 @@ availableSecrets:
       env: 'TEST_ADMIN_USER_EMAIL'
     - versionName: projects/$PROJECT_ID/secrets/TEST_ADMIN_USER_PASSWORD/versions/latest
       env: 'TEST_ADMIN_USER_PASSWORD'
-    - versionName: projects/$PROJECT_ID/secrets/SUPABASE_URL/versions/latest
+    - versionName: projects/$PROJECT_ID/secrets/VITE_SUPABASE_URL/versions/latest
       env: 'SUPABASE_URL'
     - versionName: projects/$PROJECT_ID/secrets/TEST_SUPABASE_SERVICE_ROLE_KEY/versions/latest
       env: 'SUPABASE_SERVICE_ROLE_KEY'
