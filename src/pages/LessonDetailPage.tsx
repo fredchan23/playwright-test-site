@@ -6,6 +6,16 @@ import { useAuth } from '../contexts/AuthContext';
 import { ArrowLeft, CreditCard as Edit, Trash2, Share2, FileText, Image as ImageIcon, Download, X } from 'lucide-react';
 import LessonQAPanel from '../components/LessonQAPanel';
 
+const GENRE_COLORS: Record<string, { bg: string; text: string }> = {
+  Arts:        { bg: 'oklch(0.93 0.05 340)', text: 'oklch(0.45 0.15 340)' },
+  Business:    { bg: 'oklch(0.94 0.05 80)',  text: 'oklch(0.45 0.14 80)'  },
+  Design:      { bg: 'oklch(0.93 0.05 300)', text: 'oklch(0.45 0.16 300)' },
+  Language:    { bg: 'oklch(0.93 0.05 200)', text: 'oklch(0.45 0.14 200)' },
+  Mathematics: { bg: 'oklch(0.93 0.05 250)', text: 'oklch(0.45 0.16 250)' },
+  Programming: { bg: 'oklch(0.93 0.05 178)', text: 'oklch(0.42 0.14 178)' },
+  Science:     { bg: 'oklch(0.93 0.05 130)', text: 'oklch(0.42 0.14 130)' },
+};
+
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
   import.meta.url,
@@ -191,10 +201,13 @@ export default function LessonDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center" style={{ background: 'var(--bg)' }}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-900 mx-auto"></div>
-          <p className="mt-4 text-slate-600">Loading lesson...</p>
+          <div
+            className="w-10 h-10 rounded-full border-2 border-transparent animate-spin mx-auto mb-4"
+            style={{ borderTopColor: 'var(--accent)', borderRightColor: 'var(--accent)' }}
+          />
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Loading lesson…</p>
         </div>
       </div>
     );
@@ -202,12 +215,13 @@ export default function LessonDetailPage() {
 
   if (!lesson) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center" style={{ background: 'var(--bg)' }}>
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-slate-900 mb-2">Lesson not found</h2>
+          <h2 className="text-base font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Lesson not found</h2>
           <button
             onClick={() => navigate('/library')}
-            className="text-slate-600 hover:text-slate-900"
+            className="text-sm"
+            style={{ color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}
           >
             Back to Library
           </button>
@@ -217,90 +231,115 @@ export default function LessonDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ background: 'var(--bg)' }}>
+      {/* Top bar */}
+      <div
+        className="px-7 py-3.5 flex items-center justify-between shrink-0"
+        style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border-light)' }}
+      >
+        <button
+          onClick={() => navigate('/library')}
+          className="flex items-center gap-1.5 text-sm font-medium"
+          style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+          data-testid="lesson-detail-back-button"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          Back to Library
+        </button>
+
+        {isOwner && (
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => navigate('/library')}
-              className="flex items-center space-x-2 text-slate-700 hover:text-slate-900"
-              data-testid="lesson-detail-back-button"
+              onClick={() => setShowShareDialog(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium"
+              style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+              data-testid="lesson-detail-share-button"
             >
-              <ArrowLeft className="w-5 h-5" />
-              <span>Back to Library</span>
+              <Share2 className="w-3.5 h-3.5" />
+              Share
             </button>
-
-            {isOwner && (
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => setShowShareDialog(true)}
-                  className="flex items-center space-x-2 px-4 py-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
-                  data-testid="lesson-detail-share-button"
-                >
-                  <Share2 className="w-5 h-5" />
-                  <span>Share</span>
-                </button>
-                <button
-                  onClick={() => navigate(`/lessons/${id}/edit`)}
-                  className="flex items-center space-x-2 px-4 py-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
-                  data-testid="lesson-detail-edit-button"
-                >
-                  <Edit className="w-5 h-5" />
-                  <span>Edit</span>
-                </button>
-                <button
-                  onClick={() => setShowDeleteDialog(true)}
-                  className="flex items-center space-x-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  data-testid="lesson-detail-delete-button"
-                >
-                  <Trash2 className="w-5 h-5" />
-                  <span>Delete</span>
-                </button>
-              </div>
-            )}
+            <button
+              onClick={() => navigate(`/lessons/${id}/edit`)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium"
+              style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+              data-testid="lesson-detail-edit-button"
+            >
+              <Edit className="w-3.5 h-3.5" />
+              Edit
+            </button>
+            <button
+              onClick={() => setShowDeleteDialog(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium"
+              style={{ background: 'oklch(0.95 0.04 25)', color: 'oklch(0.45 0.18 25)', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+              data-testid="lesson-detail-delete-button"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Delete
+            </button>
           </div>
-        </div>
-      </header>
+        )}
+      </div>
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-8 mb-6">
-          <h1 className="text-3xl font-bold text-slate-900 mb-4" data-testid="lesson-detail-title">
-            {lesson.title}
-          </h1>
-
-          <div className="flex flex-wrap gap-2 mb-6">
+      <div className="flex-1 flex min-h-0 overflow-hidden">
+        {/* Main content */}
+        <div className="flex-1 overflow-y-auto px-9 py-8">
+          <div className="max-w-[680px]">
             {lesson.genre && (
-              <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-lg text-sm" data-testid="lesson-detail-genre">
+              <span
+                className="inline-block px-2.5 py-1 text-[11px] rounded-full font-medium font-mono mb-3"
+                style={{
+                  background: GENRE_COLORS[lesson.genre.name]?.bg ?? 'var(--surface2)',
+                  color: GENRE_COLORS[lesson.genre.name]?.text ?? 'var(--text-secondary)',
+                }}
+                data-testid="lesson-detail-genre"
+              >
                 {lesson.genre.name}
               </span>
             )}
-            {lesson.tags && lesson.tags.map(tag => (
-              <span key={tag} className="px-3 py-1 bg-slate-50 text-slate-600 rounded-lg text-sm" data-testid="lesson-detail-tag">
-                {tag}
-              </span>
-            ))}
-          </div>
+            <h1
+              className="text-[26px] font-bold tracking-tight leading-snug mb-3"
+              style={{ color: 'var(--text-primary)' }}
+              data-testid="lesson-detail-title"
+            >
+              {lesson.title}
+            </h1>
 
-          <div className="prose max-w-none">
-            <p className="text-slate-700 whitespace-pre-wrap" data-testid="lesson-detail-description">
+            <div className="flex flex-wrap gap-1.5 mb-5">
+              {lesson.tags && lesson.tags.map(tag => (
+                <span
+                  key={tag}
+                  className="px-2 py-0.5 text-[11px] rounded-full font-mono"
+                  style={{ border: '1px solid var(--border)', color: 'var(--text-muted)' }}
+                  data-testid="lesson-detail-tag"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+
+            <p
+              className="text-[15px] whitespace-pre-wrap mb-8"
+              style={{ color: 'var(--text-secondary)', lineHeight: 1.65 }}
+              data-testid="lesson-detail-description"
+            >
               {lesson.description}
             </p>
-          </div>
-        </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-8">
-          <h2 className="text-xl font-semibold text-slate-900 mb-4">
-            Files ({files.length})
-          </h2>
+            {/* Files section */}
+            <h2 className="text-[15px] font-semibold mb-3.5 flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
+              <FileText className="w-3.5 h-3.5" />
+              Files ({files.length})
+            </h2>
 
           {files.length === 0 ? (
             <div className="text-center py-8" data-testid="lesson-detail-no-files">
-              <FileText className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-              <p className="text-slate-600">No files uploaded yet</p>
+              <FileText className="w-10 h-10 mx-auto mb-3" style={{ color: 'var(--border)' }} />
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No files uploaded yet</p>
               {isOwner && (
                 <button
                   onClick={() => navigate(`/lessons/${id}/edit`)}
-                  className="mt-4 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
+                  className="mt-4 px-4 py-2 text-sm font-medium rounded-lg text-white"
+                  style={{ background: 'var(--accent)', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
                   data-testid="lesson-detail-upload-files-button"
                 >
                   Upload Files
@@ -308,23 +347,26 @@ export default function LessonDetailPage() {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="lesson-detail-files-list">
+            <div className="flex flex-wrap gap-3" data-testid="lesson-detail-files-list">
               {files.map(file => (
                 <div
                   key={file.id}
-                  className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                  className="rounded-[var(--radius)] overflow-hidden"
+                  style={{ width: 170, border: '1px solid var(--border)', background: 'var(--surface)', boxShadow: 'var(--shadow-sm)' }}
                   data-testid={`lesson-detail-file-${file.id}`}
                 >
                   <div
                     onClick={() => handleFileClick(file)}
-                    className="cursor-pointer mb-3 group"
+                    className="cursor-pointer group"
+                    style={{ height: 110, background: 'var(--surface2)', borderBottom: '1px solid var(--border-light)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   >
                     {(file.file_type.startsWith('image/') || isPdf(file)) ? (
-                      <div className="aspect-video bg-slate-100 rounded flex items-center justify-center overflow-hidden relative">
+                      <>
                         {loadingThumbnails[file.id] ? (
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-400"></div>
-                          </div>
+                          <div
+                            className="w-7 h-7 rounded-full border-2 border-transparent animate-spin"
+                            style={{ borderTopColor: 'var(--accent)', borderRightColor: 'var(--accent)' }}
+                          />
                         ) : thumbnailUrls[file.id] ? (
                           <img
                             src={thumbnailUrls[file.id]}
@@ -335,60 +377,71 @@ export default function LessonDetailPage() {
                           />
                         ) : (
                           file.file_type.startsWith('image/')
-                            ? <ImageIcon className="w-12 h-12 text-slate-400" />
-                            : <FileText className="w-12 h-12 text-slate-400" />
+                            ? <ImageIcon className="w-7 h-7" style={{ color: 'var(--text-muted)' }} />
+                            : <FileText className="w-7 h-7" style={{ color: 'var(--text-muted)' }} />
                         )}
-                      </div>
+                      </>
                     ) : (
-                      <div className="aspect-video bg-slate-100 rounded flex items-center justify-center">
-                        <FileText className="w-12 h-12 text-slate-400" />
-                      </div>
+                      <FileText className="w-7 h-7" style={{ color: 'var(--text-muted)' }} />
                     )}
                   </div>
-                  <p className="text-sm font-medium text-slate-900 truncate mb-1" data-testid="lesson-file-name">
-                    {file.filename}
-                  </p>
-                  <p className="text-xs text-slate-500 mb-3" data-testid="lesson-file-size">
-                    {(file.file_size / 1024 / 1024).toFixed(2)} MB
-                  </p>
-                  <button
-                    onClick={() => handleDownload(file)}
-                    className="w-full flex items-center justify-center space-x-2 px-3 py-2 bg-slate-100 text-slate-700 rounded hover:bg-slate-200 transition-colors text-sm"
-                    data-testid={`lesson-file-download-${file.id}`}
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Download</span>
-                  </button>
+                  <div className="p-3">
+                    <p className="text-[11px] font-medium truncate mb-0.5" style={{ color: 'var(--text-primary)' }} data-testid="lesson-file-name">
+                      {file.filename}
+                    </p>
+                    <p className="text-[11px] font-mono mb-2" style={{ color: 'var(--text-muted)' }} data-testid="lesson-file-size">
+                      {(file.file_size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                    <button
+                      onClick={() => handleDownload(file)}
+                      className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium"
+                      style={{ border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'inherit' }}
+                      data-testid={`lesson-file-download-${file.id}`}
+                    >
+                      <Download className="w-3 h-3" />
+                      Download
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
           )}
+
+          </div>
         </div>
 
-        <LessonQAPanel lessonId={lesson.id} />
-      </main>
+        {/* Q&A right column */}
+        <div
+          className="flex flex-col shrink-0"
+          style={{ width: 360, borderLeft: '1px solid var(--border)', background: 'var(--surface)' }}
+        >
+          <LessonQAPanel lessonId={lesson.id} columnMode />
+        </div>
+      </div>
 
       {showDeleteDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" data-testid="lesson-detail-delete-dialog">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">Delete Lesson</h3>
-            <p className="text-slate-600 mb-4">Are you sure you want to delete this lesson? This action cannot be undone.</p>
+        <div className="fixed inset-0 flex items-center justify-center p-4 z-50" style={{ background: 'rgba(0,0,0,0.5)' }} data-testid="lesson-detail-delete-dialog">
+          <div className="w-full max-w-[400px] p-6 rounded-[var(--radius-lg)]" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+            <h3 className="text-base font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Delete Lesson</h3>
+            <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>Are you sure you want to delete this lesson? This action cannot be undone.</p>
             {deleteError && (
-              <p className="mb-4 text-sm text-red-600" data-testid="lesson-detail-delete-error">
+              <p className="mb-4 text-xs" style={{ color: 'oklch(0.45 0.18 25)' }} data-testid="lesson-detail-delete-error">
                 Failed to delete lesson. Please try again.
               </p>
             )}
-            <div className="flex space-x-3">
+            <div className="flex gap-3">
               <button
                 onClick={() => { setShowDeleteDialog(false); setDeleteError(false); }}
-                className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+                className="flex-1 px-4 py-2 rounded-lg text-sm font-medium"
+                style={{ border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-primary)', cursor: 'pointer', fontFamily: 'inherit' }}
                 data-testid="lesson-detail-delete-cancel"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDelete}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                className="flex-1 px-4 py-2 rounded-lg text-sm font-medium text-white"
+                style={{ background: 'oklch(0.58 0.18 25)', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
                 data-testid="lesson-detail-delete-confirm"
               >
                 Delete
@@ -407,16 +460,18 @@ export default function LessonDetailPage() {
 
       {selectedImage && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-4 z-50"
+          className="fixed inset-0 flex items-center justify-center p-4 z-50"
+          style={{ background: 'rgba(0,0,0,0.9)' }}
           onClick={() => setSelectedImage(null)}
           data-testid="lesson-detail-image-lightbox"
         >
           <button
-            className="absolute top-4 right-4 text-white hover:text-slate-300"
+            className="absolute top-4 right-4 text-white"
+            style={{ background: 'none', border: 'none', cursor: 'pointer' }}
             onClick={() => setSelectedImage(null)}
             data-testid="lesson-detail-lightbox-close"
           >
-            <X className="w-8 h-8" />
+            <X className="w-7 h-7" />
           </button>
           <img
             src={selectedImage}
@@ -517,58 +572,69 @@ function ShareDialog({ lessonId, onClose }: { lessonId: string; onClose: () => v
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" data-testid="lesson-share-dialog">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full">
-        <h3 className="text-lg font-semibold text-slate-900 mb-4">Share Lesson</h3>
+    <div className="fixed inset-0 flex items-center justify-center p-4 z-50" style={{ background: 'rgba(0,0,0,0.5)' }} data-testid="lesson-share-dialog">
+      <div className="w-full max-w-[440px] p-6 rounded-[var(--radius-lg)]" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+        <h3 className="text-base font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Share Lesson</h3>
 
         <div className="mb-4">
-          <label htmlFor="share-email" className="block text-sm font-medium text-slate-700 mb-2">
+          <label htmlFor="share-email" className="block text-[13px] font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
             Email Address
           </label>
-          <div className="flex space-x-2">
+          <div className="flex gap-2">
             <input
               id="share-email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="user@example.com"
-              className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent"
+              style={{
+                flex: 1, border: '1px solid var(--border)', borderRadius: 8,
+                padding: '9px 12px', fontSize: 14, color: 'var(--text-primary)',
+                background: 'var(--surface)', outline: 'none', fontFamily: 'inherit',
+              }}
               data-testid="lesson-share-email-input"
               aria-label="User email to share with"
             />
             <button
               onClick={handleShare}
               disabled={loading || !email}
-              className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors disabled:bg-slate-400"
+              className="px-4 py-2 text-sm font-medium rounded-lg text-white"
+              style={{ background: 'var(--accent)', border: 'none', cursor: loading || !email ? 'not-allowed' : 'pointer', opacity: loading || !email ? 0.6 : 1, fontFamily: 'inherit' }}
               data-testid="lesson-share-submit-button"
             >
               Share
             </button>
           </div>
           {error && (
-            <p className="mt-2 text-sm text-red-600" data-testid="lesson-share-error">
+            <p className="mt-1.5 text-xs" style={{ color: 'oklch(0.45 0.18 25)' }} data-testid="lesson-share-error">
               {error}
             </p>
           )}
         </div>
 
-        <div className="mb-6">
-          <h4 className="text-sm font-medium text-slate-700 mb-2">Shared with</h4>
+        <div className="mb-5">
+          <h4 className="text-[13px] font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Shared with</h4>
           {sharedUsers.length === 0 ? (
-            <p className="text-sm text-slate-500" data-testid="lesson-share-empty-list">
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }} data-testid="lesson-share-empty-list">
               This lesson has not been shared with anyone yet
             </p>
           ) : (
-            <div className="space-y-2" data-testid="lesson-share-users-list">
+            <div className="flex flex-col gap-1.5" data-testid="lesson-share-users-list">
               {sharedUsers.map(sharedUser => (
-                <div key={sharedUser.id} className="flex items-center justify-between p-2 bg-slate-50 rounded" data-testid={`lesson-share-user-${sharedUser.id}`}>
+                <div
+                  key={sharedUser.id}
+                  className="flex items-center justify-between p-2.5 rounded-lg"
+                  style={{ background: 'var(--surface2)' }}
+                  data-testid={`lesson-share-user-${sharedUser.id}`}
+                >
                   <div>
-                    <p className="text-sm font-medium text-slate-900">{sharedUser.username}</p>
-                    <p className="text-xs text-slate-500">{sharedUser.email}</p>
+                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{sharedUser.username}</p>
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{sharedUser.email}</p>
                   </div>
                   <button
                     onClick={() => handleRevoke(sharedUser.id)}
-                    className="text-sm text-red-600 hover:text-red-700"
+                    className="text-xs font-medium"
+                    style={{ color: 'oklch(0.45 0.18 25)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
                     data-testid={`lesson-share-remove-${sharedUser.id}`}
                   >
                     Remove
@@ -581,7 +647,8 @@ function ShareDialog({ lessonId, onClose }: { lessonId: string; onClose: () => v
 
         <button
           onClick={onClose}
-          className="w-full px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+          className="w-full px-4 py-2 rounded-lg text-sm font-medium"
+          style={{ border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-primary)', cursor: 'pointer', fontFamily: 'inherit' }}
           data-testid="lesson-share-close-button"
         >
           Close

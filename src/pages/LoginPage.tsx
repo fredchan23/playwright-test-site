@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { LogIn } from 'lucide-react';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -27,77 +26,162 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          <div className="flex items-center justify-center mb-6">
-            <LogIn className="w-10 h-10 text-slate-700" />
+    <div
+      className="min-h-screen flex items-center justify-center p-4 relative"
+      style={{ background: 'var(--bg)' }}
+    >
+      {/* Gradient backdrop */}
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          pointerEvents: 'none',
+          backgroundImage:
+            'radial-gradient(circle at 30% 20%, oklch(0.94 0.04 268 / 0.4) 0%, transparent 50%), radial-gradient(circle at 70% 80%, oklch(0.93 0.04 178 / 0.3) 0%, transparent 50%)',
+        }}
+      />
+
+      <div
+        className="w-full max-w-[400px] relative z-10"
+        style={{
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-lg)',
+          boxShadow: 'var(--shadow-lg)',
+          padding: '40px 36px',
+        }}
+      >
+        {/* Logo */}
+        <div className="text-center mb-7">
+          <div
+            className="w-11 h-11 rounded-xl flex items-center justify-center mx-auto mb-4"
+            style={{ background: 'var(--text-primary)' }}
+          >
+            <span className="text-white font-bold text-base tracking-tight">SN</span>
           </div>
-          <h1 className="text-2xl font-bold text-center text-slate-900 mb-2">
-            Welcome Back
+          <h1
+            className="text-[22px] font-bold tracking-tight mb-1.5"
+            style={{ color: 'var(--text-primary)' }}
+          >
+            Welcome back
           </h1>
-          <p className="text-center text-slate-600 mb-6">
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
             Sign in to access your lessons
           </p>
-
-          <form onSubmit={handleSubmit} data-testid="login-form">
-            <div className="mb-4">
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent"
-                placeholder="you@example.com"
-                required
-                data-testid="login-email-input"
-                aria-label="Email address"
-              />
-            </div>
-
-            <div className="mb-6">
-              <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-2">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent"
-                placeholder="••••••••"
-                required
-                data-testid="login-password-input"
-                aria-label="Password"
-              />
-            </div>
-
-            {error && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm" data-testid="login-error-message">
-                {error}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-slate-900 text-white py-2 px-4 rounded-lg hover:bg-slate-800 transition-colors disabled:bg-slate-400 disabled:cursor-not-allowed"
-              data-testid="login-submit-button"
-            >
-              {loading ? 'Signing in...' : 'Sign In'}
-            </button>
-          </form>
-
-          <p className="mt-6 text-center text-sm text-slate-600">
-            Don't have an account?{' '}
-            <Link to="/register" className="text-slate-900 font-medium hover:underline" data-testid="login-register-link">
-              Create one
-            </Link>
-          </p>
         </div>
+
+        <form onSubmit={handleSubmit} data-testid="login-form" className="flex flex-col gap-3.5">
+          <div className="flex flex-col gap-1.5">
+            <label
+              htmlFor="email"
+              className="text-[13px] font-medium"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              required
+              data-testid="login-email-input"
+              aria-label="Email address"
+              style={{
+                border: '1px solid var(--border)',
+                borderRadius: 8,
+                padding: '10px 12px',
+                fontSize: 14,
+                color: 'var(--text-primary)',
+                background: 'var(--surface)',
+                outline: 'none',
+                height: 40,
+                fontFamily: 'inherit',
+                width: '100%',
+              }}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label
+              htmlFor="password"
+              className="text-[13px] font-medium"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+              data-testid="login-password-input"
+              aria-label="Password"
+              style={{
+                border: '1px solid var(--border)',
+                borderRadius: 8,
+                padding: '10px 12px',
+                fontSize: 14,
+                color: 'var(--text-primary)',
+                background: 'var(--surface)',
+                outline: 'none',
+                height: 40,
+                fontFamily: 'inherit',
+                width: '100%',
+              }}
+            />
+          </div>
+
+          {error && (
+            <div
+              className="p-3 text-sm rounded-lg"
+              style={{
+                background: 'oklch(0.95 0.04 25)',
+                color: 'oklch(0.45 0.18 25)',
+                border: '1px solid oklch(0.87 0.08 25)',
+              }}
+              data-testid="login-error-message"
+            >
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            data-testid="login-submit-button"
+            style={{
+              background: 'var(--accent)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 8,
+              padding: '11px',
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: loading ? 'not-allowed' : 'pointer',
+              marginTop: 4,
+              fontFamily: 'inherit',
+              opacity: loading ? 0.7 : 1,
+              width: '100%',
+            }}
+          >
+            {loading ? 'Signing in…' : 'Sign in'}
+          </button>
+        </form>
+
+        <p className="text-center text-[13px] mt-5" style={{ color: 'var(--text-muted)' }}>
+          Don't have an account?{' '}
+          <Link
+            to="/register"
+            style={{ color: 'var(--accent)', fontWeight: 500 }}
+            data-testid="login-register-link"
+          >
+            Create one
+          </Link>
+        </p>
       </div>
     </div>
   );

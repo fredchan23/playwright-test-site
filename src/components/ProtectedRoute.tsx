@@ -10,10 +10,13 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg)' }}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-900 mx-auto"></div>
-          <p className="mt-4 text-slate-600">Loading...</p>
+          <div
+            className="w-10 h-10 rounded-full border-2 border-transparent animate-spin mx-auto mb-4"
+            style={{ borderTopColor: 'var(--accent)', borderRightColor: 'var(--accent)' }}
+          />
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Loading…</p>
         </div>
       </div>
     );

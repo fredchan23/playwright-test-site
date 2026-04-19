@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Plus, Search, LogOut, FileText, X, SlidersHorizontal, LayoutGrid, List, Settings } from 'lucide-react';
+import { Plus, Search, FileText, X, SlidersHorizontal, LayoutGrid, List, Share2, File } from 'lucide-react';
 import RangeSlider from '../components/RangeSlider';
 
 interface Genre {
@@ -35,7 +35,7 @@ type ViewMode = 'card' | 'list';
 
 export default function LibraryPage() {
   const navigate = useNavigate();
-  const { user, isAdmin, signOut } = useAuth();
+  const { user } = useAuth();
   const [ownLessons, setOwnLessons] = useState<Lesson[]>([]);
   const [sharedLessons, setSharedLessons] = useState<Lesson[]>([]);
   const [genres, setGenres] = useState<Genre[]>([]);
@@ -50,7 +50,7 @@ export default function LibraryPage() {
   const [maxFileSize, setMaxFileSize] = useState(10);
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     const saved = localStorage.getItem('library-view-mode');
-    return (saved === 'list' || saved === 'card') ? saved : 'card';
+    return saved === 'list' || saved === 'card' ? saved : 'card';
   });
 
   useEffect(() => {
@@ -82,9 +82,7 @@ export default function LibraryPage() {
       if (ownLessonsResult.error) throw ownLessonsResult.error;
       if (sharedLessonsResult.error) throw sharedLessonsResult.error;
 
-      if (genresResult.data) {
-        setGenres(genresResult.data);
-      }
+      if (genresResult.data) setGenres(genresResult.data);
 
       const lessonFilesMap = new Map<string, LessonFile[]>();
       let maxSize = 10;
@@ -96,9 +94,7 @@ export default function LibraryPage() {
           }
           lessonFilesMap.get(file.lesson_id)!.push(file);
           const fileSizeMB = file.file_size / (1024 * 1024);
-          if (fileSizeMB > maxSize) {
-            maxSize = Math.ceil(fileSizeMB);
-          }
+          if (fileSizeMB > maxSize) maxSize = Math.ceil(fileSizeMB);
         });
       }
 
@@ -122,7 +118,8 @@ export default function LibraryPage() {
           .map((share) => {
             if (!share.lesson) return null;
             const files = lessonFilesMap.get(share.lesson.id) || [];
-            const total_file_size = files.reduce((sum, file) => sum + file.file_size, 0) / (1024 * 1024);
+            const total_file_size =
+              files.reduce((sum, file) => sum + file.file_size, 0) / (1024 * 1024);
             return {
               ...share.lesson,
               shared_by: share.lesson.owner?.username,
@@ -132,7 +129,7 @@ export default function LibraryPage() {
           })
           .filter((l): l is NonNullable<typeof l> => l !== null);
         setSharedLessons(shared as Lesson[]);
-        extractTags([...ownLessonsResult.data || [], ...shared]);
+        extractTags([...(ownLessonsResult.data || []), ...shared]);
       }
     } catch {
       setLoadError(true);
@@ -143,15 +140,8 @@ export default function LibraryPage() {
 
   const extractTags = (lessons: Lesson[]) => {
     const tagSet = new Set<string>();
-    lessons.forEach(lesson => {
-      lesson.tags?.forEach(tag => tagSet.add(tag));
-    });
+    lessons.forEach((lesson) => lesson.tags?.forEach((tag) => tagSet.add(tag)));
     setAvailableTags(Array.from(tagSet).sort());
-  };
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/login');
   };
 
   const filterLessons = (lessons: Lesson[]) => {
@@ -159,27 +149,28 @@ export default function LibraryPage() {
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(lesson =>
-        lesson.title.toLowerCase().includes(query) ||
-        lesson.description.toLowerCase().includes(query) ||
-        lesson.tags?.some(tag => tag.toLowerCase().includes(query))
+      filtered = filtered.filter(
+        (lesson) =>
+          lesson.title.toLowerCase().includes(query) ||
+          lesson.description.toLowerCase().includes(query) ||
+          lesson.tags?.some((tag) => tag.toLowerCase().includes(query))
       );
     }
 
     if (selectedGenres.length > 0) {
-      filtered = filtered.filter(lesson =>
-        lesson.genre_id && selectedGenres.includes(lesson.genre_id)
+      filtered = filtered.filter(
+        (lesson) => lesson.genre_id && selectedGenres.includes(lesson.genre_id)
       );
     }
 
     if (selectedTags.length > 0) {
-      filtered = filtered.filter(lesson =>
-        selectedTags.every(tag => lesson.tags?.includes(tag))
+      filtered = filtered.filter((lesson) =>
+        selectedTags.every((tag) => lesson.tags?.includes(tag))
       );
     }
 
     if (fileSizeRange[0] > 0 || fileSizeRange[1] < maxFileSize) {
-      filtered = filtered.filter(lesson => {
+      filtered = filtered.filter((lesson) => {
         const totalSize = lesson.total_file_size || 0;
         return totalSize >= fileSizeRange[0] && totalSize <= fileSizeRange[1];
       });
@@ -189,18 +180,14 @@ export default function LibraryPage() {
   };
 
   const toggleGenre = (genreId: string) => {
-    setSelectedGenres(prev =>
-      prev.includes(genreId)
-        ? prev.filter(id => id !== genreId)
-        : [...prev, genreId]
+    setSelectedGenres((prev) =>
+      prev.includes(genreId) ? prev.filter((id) => id !== genreId) : [...prev, genreId]
     );
   };
 
   const toggleTag = (tag: string) => {
-    setSelectedTags(prev =>
-      prev.includes(tag)
-        ? prev.filter(t => t !== tag)
-        : [...prev, tag]
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
     );
   };
 
@@ -221,14 +208,21 @@ export default function LibraryPage() {
   const totalFiltered = filteredOwnLessons.length + filteredSharedLessons.length;
   const totalLessons = ownLessons.length + sharedLessons.length;
   const hasFileSizeFilter = fileSizeRange[0] > 0 || fileSizeRange[1] < maxFileSize;
-  const hasActiveFilters = searchQuery || selectedGenres.length > 0 || selectedTags.length > 0 || hasFileSizeFilter;
+  const hasActiveFilters =
+    searchQuery || selectedGenres.length > 0 || selectedTags.length > 0 || hasFileSizeFilter;
+  const activeFilterCount = selectedGenres.length + selectedTags.length;
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center" style={{ background: 'var(--bg)' }}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-900 mx-auto"></div>
-          <p className="mt-4 text-slate-600">Loading library...</p>
+          <div
+            className="w-10 h-10 rounded-full border-2 border-transparent animate-spin mx-auto mb-4"
+            style={{ borderTopColor: 'var(--accent)', borderRightColor: 'var(--accent)' }}
+          />
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+            Loading library…
+          </p>
         </div>
       </div>
     );
@@ -236,13 +230,22 @@ export default function LibraryPage() {
 
   if (loadError) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center" data-testid="library-error">
+      <div
+        className="flex-1 flex items-center justify-center"
+        style={{ background: 'var(--bg)' }}
+        data-testid="library-error"
+      >
         <div className="text-center">
-          <p className="text-slate-700 font-medium mb-2">Failed to load your library.</p>
-          <p className="text-slate-500 text-sm mb-6">Check your connection and try again.</p>
+          <p className="font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
+            Failed to load your library.
+          </p>
+          <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>
+            Check your connection and try again.
+          </p>
           <button
             onClick={loadData}
-            className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
+            className="px-4 py-2 text-sm font-medium rounded-lg text-white"
+            style={{ background: 'var(--accent)', border: 'none', cursor: 'pointer' }}
             data-testid="library-error-retry-button"
           >
             Retry
@@ -253,97 +256,112 @@ export default function LibraryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center shrink-0">
-                <span className="text-white text-xs font-bold tracking-tight">SN</span>
-              </div>
-              <h1 className="flex items-baseline gap-2">
-                <span className="text-xl font-bold text-slate-900">StudyNode</span>
-                <span className="text-sm font-medium text-slate-400">Library</span>
-              </h1>
-            </div>
-            <div className="flex items-center space-x-2">
-              {isAdmin && (
-                <button
-                  onClick={() => navigate('/settings')}
-                  className="flex items-center space-x-2 px-4 py-2 text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
-                  data-testid="library-settings-button"
-                >
-                  <Settings className="w-5 h-5" />
-                  <span>Settings</span>
-                </button>
-              )}
-              <button
-                onClick={handleSignOut}
-                className="flex items-center space-x-2 px-4 py-2 text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
-                data-testid="library-logout-button"
-              >
-                <LogOut className="w-5 h-5" />
-                <span>Logout</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8 flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Search lessons..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-10 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent"
-              data-testid="library-search-input"
-              aria-label="Search lessons"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                data-testid="library-search-clear-button"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            )}
-          </div>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center justify-center space-x-2 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-100 transition-colors"
-            data-testid="library-filters-toggle-button"
-          >
-            <SlidersHorizontal className="w-5 h-5" />
-            <span>Filters</span>
-            {hasActiveFilters && (
-              <span className="bg-slate-900 text-white text-xs px-2 py-0.5 rounded-full">
-                {(selectedGenres.length + selectedTags.length) || ''}
-              </span>
-            )}
-          </button>
-          <button
-            onClick={() => navigate('/lessons/create')}
-            className="flex items-center justify-center space-x-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
-            data-testid="library-create-lesson-button"
-          >
-            <Plus className="w-5 h-5" />
-            <span>Create Lesson</span>
-          </button>
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ background: 'var(--bg)' }}>
+      {/* Top bar */}
+      <div
+        className="px-7 py-5 flex items-center gap-3 shrink-0"
+        style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border-light)' }}
+      >
+        <div className="flex-1 relative">
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5"
+            style={{ color: 'var(--text-muted)' }}
+          />
+          <input
+            type="text"
+            placeholder="Search lessons…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              width: '100%',
+              height: 38,
+              border: '1px solid var(--border)',
+              borderRadius: 8,
+              padding: '0 36px 0 34px',
+              fontSize: 14,
+              background: 'var(--bg)',
+              color: 'var(--text-primary)',
+              outline: 'none',
+              fontFamily: 'inherit',
+            }}
+            data-testid="library-search-input"
+            aria-label="Search lessons"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2"
+              style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              data-testid="library-search-clear-button"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
 
+        <button
+          onClick={() => setShowFilters((v) => !v)}
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium"
+          style={{
+            background: showFilters ? 'var(--accent-light)' : 'var(--surface)',
+            color: showFilters ? 'var(--accent)' : 'var(--text-primary)',
+            border: '1px solid var(--border)',
+            boxShadow: 'var(--shadow-sm)',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+          }}
+          data-testid="library-filters-toggle-button"
+        >
+          <SlidersHorizontal className="w-3.5 h-3.5" />
+          Filters
+          {activeFilterCount > 0 && (
+            <span
+              className="text-[11px] px-1.5 py-0.5 rounded-full text-white ml-0.5"
+              style={{ background: 'var(--accent)' }}
+            >
+              {activeFilterCount}
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => navigate('/lessons/create')}
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium text-white"
+          style={{
+            background: 'var(--accent)',
+            border: 'none',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+          }}
+          data-testid="library-create-lesson-button"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          New Lesson
+        </button>
+      </div>
+
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto px-7 py-6">
+        {/* Filters panel */}
         {showFilters && (
-          <div className="mb-8 bg-white rounded-lg shadow-sm border border-slate-200 p-6" data-testid="library-filters-panel">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-slate-900">Filters</h3>
+          <div
+            className="rounded-[var(--radius)] p-5 mb-5"
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+            data-testid="library-filters-panel"
+          >
+            <div className="flex items-center justify-between mb-3.5">
+              <span className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                Filter by Genre
+              </span>
               {hasActiveFilters && (
                 <button
                   onClick={clearFilters}
-                  className="text-sm text-slate-600 hover:text-slate-900"
+                  className="text-xs font-medium"
+                  style={{ color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
                   data-testid="library-clear-filters-button"
                 >
                   Clear all
@@ -351,135 +369,183 @@ export default function LibraryPage() {
               )}
             </div>
 
-            <div className="mb-6">
-              <h4 className="text-sm font-medium text-slate-700 mb-3">Genre</h4>
-              <div className="flex flex-wrap gap-2">
-                {genres.map(genre => (
+            <div className="flex flex-wrap gap-2 mb-4">
+              {genres.map((genre) => {
+                const active = selectedGenres.includes(genre.id);
+                const colors = GENRE_COLORS[genre.name] ?? DEFAULT_GENRE_COLORS;
+                return (
                   <button
                     key={genre.id}
                     onClick={() => toggleGenre(genre.id)}
-                    className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                      selectedGenres.includes(genre.id)
-                        ? 'bg-slate-900 text-white'
-                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                    }`}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13px] font-medium"
+                    style={{
+                      background: active ? colors.bg : 'var(--surface2)',
+                      color: active ? colors.text : 'var(--text-secondary)',
+                      border: `1.5px solid ${active ? colors.text : 'transparent'}`,
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                    }}
                     data-testid={`library-filter-genre-${genre.name.toLowerCase()}`}
                   >
                     {genre.name}
                   </button>
-                ))}
-              </div>
+                );
+              })}
             </div>
 
             {availableTags.length > 0 && (
-              <div className="mb-6">
-                <h4 className="text-sm font-medium text-slate-700 mb-3">Tags</h4>
-                <div className="flex flex-wrap gap-2">
-                  {availableTags.map(tag => (
+              <>
+                <p className="text-[13px] font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+                  Tags
+                </p>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {availableTags.map((tag) => (
                     <button
                       key={tag}
                       onClick={() => toggleTag(tag)}
-                      className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                        selectedTags.includes(tag)
-                          ? 'bg-slate-900 text-white'
-                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                      }`}
+                      className="px-3 py-1 rounded-full text-xs font-medium"
+                      style={{
+                        background: selectedTags.includes(tag) ? 'var(--accent)' : 'var(--surface2)',
+                        color: selectedTags.includes(tag) ? '#fff' : 'var(--text-secondary)',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontFamily: 'inherit',
+                      }}
                       data-testid={`library-filter-tag-${tag.toLowerCase()}`}
                     >
                       {tag}
                     </button>
                   ))}
                 </div>
-              </div>
+              </>
             )}
 
-            <div>
-              <RangeSlider
-                min={0}
-                max={maxFileSize}
-                step={0.1}
-                values={fileSizeRange}
-                onChange={setFileSizeRange}
-                label="Lesson File Size"
-                formatValue={(v) => `${v.toFixed(1)} MB`}
-              />
-            </div>
+            <RangeSlider
+              min={0}
+              max={maxFileSize}
+              step={0.1}
+              values={fileSizeRange}
+              onChange={setFileSizeRange}
+              label="Lesson File Size"
+              formatValue={(v) => `${v.toFixed(1)} MB`}
+            />
           </div>
         )}
 
         {hasActiveFilters && (
-          <div className="mb-4 text-sm text-slate-600" data-testid="library-results-count">
+          <div className="mb-4 text-sm" style={{ color: 'var(--text-muted)' }} data-testid="library-results-count">
             Showing {totalFiltered} of {totalLessons} lessons
           </div>
         )}
 
         {filteredOwnLessons.length === 0 && filteredSharedLessons.length === 0 && (
-          <div className="text-center py-12">
-            <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-slate-900 mb-2" data-testid="library-empty-message">
-              {hasActiveFilters ? 'No lessons found matching your search' : "You haven't created any lessons yet"}
+          <div className="text-center py-16">
+            <FileText className="w-12 h-12 mx-auto mb-4" style={{ color: 'var(--border)' }} />
+            <h3
+              className="text-base font-semibold mb-2"
+              style={{ color: 'var(--text-primary)' }}
+              data-testid="library-empty-message"
+            >
+              {hasActiveFilters
+                ? 'No lessons found matching your search'
+                : "You haven't created any lessons yet"}
             </h3>
-            <p className="text-slate-600 mb-6">
-              {hasActiveFilters ? 'Try adjusting your filters or search query' : 'Create your first lesson to get started'}
+            <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>
+              {hasActiveFilters
+                ? 'Try adjusting your filters or search query'
+                : 'Create your first lesson to get started'}
             </p>
             {!hasActiveFilters && (
               <button
                 onClick={() => navigate('/lessons/create')}
-                className="inline-flex items-center space-x-2 px-6 py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium text-white"
+                style={{ background: 'var(--accent)', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
                 data-testid="library-empty-create-button"
               >
-                <Plus className="w-5 h-5" />
-                <span>Create Your First Lesson</span>
+                <Plus className="w-4 h-4" />
+                Create Your First Lesson
               </button>
             )}
           </div>
         )}
 
         {filteredOwnLessons.length > 0 && (
-          <section className="mb-12">
+          <section className="mb-10">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-slate-900" data-testid="library-my-lessons-heading">
-                My Lessons ({filteredOwnLessons.length})
-              </h2>
-              <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1" data-testid="library-view-toggle">
+              <div className="flex items-baseline gap-2">
+                <h2
+                  className="text-[17px] font-bold tracking-tight"
+                  style={{ color: 'var(--text-primary)' }}
+                  data-testid="library-my-lessons-heading"
+                >
+                  My Lessons
+                </h2>
+                <span className="text-[13px] font-mono" style={{ color: 'var(--text-muted)' }}>
+                  {filteredOwnLessons.length}
+                </span>
+              </div>
+              <div
+                className="flex gap-1 p-0.5 rounded-lg"
+                style={{ background: 'var(--surface2)' }}
+                data-testid="library-view-toggle"
+              >
                 <button
                   onClick={() => handleViewModeChange('card')}
-                  className={`p-2 rounded transition-colors ${
-                    viewMode === 'card'
-                      ? 'bg-white text-slate-900 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
+                  className="p-1.5 rounded-md"
+                  style={{
+                    background: viewMode === 'card' ? 'var(--surface)' : 'transparent',
+                    color: viewMode === 'card' ? 'var(--text-primary)' : 'var(--text-muted)',
+                    boxShadow: viewMode === 'card' ? 'var(--shadow-sm)' : 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
                   aria-label="Card view"
                   aria-pressed={viewMode === 'card'}
                   data-testid="library-view-card-button"
                 >
-                  <LayoutGrid className="w-5 h-5" />
+                  <LayoutGrid className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={() => handleViewModeChange('list')}
-                  className={`p-2 rounded transition-colors ${
-                    viewMode === 'list'
-                      ? 'bg-white text-slate-900 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
+                  className="p-1.5 rounded-md"
+                  style={{
+                    background: viewMode === 'list' ? 'var(--surface)' : 'transparent',
+                    color: viewMode === 'list' ? 'var(--text-primary)' : 'var(--text-muted)',
+                    boxShadow: viewMode === 'list' ? 'var(--shadow-sm)' : 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
                   aria-label="List view"
                   aria-pressed={viewMode === 'list'}
                   data-testid="library-view-list-button"
                 >
-                  <List className="w-5 h-5" />
+                  <List className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
+
             {viewMode === 'card' ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredOwnLessons.map(lesson => (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                {filteredOwnLessons.map((lesson) => (
                   <LessonCard key={lesson.id} lesson={lesson} isOwned={true} />
                 ))}
               </div>
             ) : (
-              <div className="flex flex-col gap-3">
-                {filteredOwnLessons.map(lesson => (
-                  <LessonListItem key={lesson.id} lesson={lesson} isOwned={true} />
+              <div
+                className="rounded-[var(--radius)] overflow-hidden"
+                style={{
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border)',
+                  boxShadow: 'var(--shadow-sm)',
+                }}
+              >
+                {filteredOwnLessons.map((lesson, i) => (
+                  <div key={lesson.id}>
+                    {i > 0 && (
+                      <div style={{ height: 1, background: 'var(--border-light)', margin: '0 16px' }} />
+                    )}
+                    <LessonListItem lesson={lesson} isOwned={true} />
+                  </div>
                 ))}
               </div>
             )}
@@ -488,141 +554,285 @@ export default function LibraryPage() {
 
         {filteredSharedLessons.length > 0 && (
           <section>
-            <h2 className="text-xl font-semibold text-slate-900 mb-4" data-testid="library-shared-lessons-heading">
-              Shared with Me ({filteredSharedLessons.length})
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredSharedLessons.map(lesson => (
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="flex items-baseline gap-2">
+                <h2
+                  className="text-[17px] font-bold tracking-tight"
+                  style={{ color: 'var(--text-primary)' }}
+                  data-testid="library-shared-lessons-heading"
+                >
+                  Shared with Me
+                </h2>
+                <span className="text-[13px] font-mono" style={{ color: 'var(--text-muted)' }}>
+                  {filteredSharedLessons.length}
+                </span>
+              </div>
+              <div className="flex-1 h-px" style={{ background: 'var(--border-light)' }} />
+              <div
+                className="flex items-center gap-1.5 text-[11px] font-semibold rounded-full px-2.5 py-[3px]"
+                style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}
+              >
+                <Share2 className="w-[11px] h-[11px]" />
+                From others
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+              {filteredSharedLessons.map((lesson) => (
                 <LessonCard key={lesson.id} lesson={lesson} isOwned={false} />
               ))}
             </div>
           </section>
         )}
-      </main>
-    </div>
-  );
-}
-
-const GENRE_COLORS: Record<string, { border: string; badge: string; dot: string }> = {
-  Programming: { border: 'border-t-blue-500',    badge: 'bg-blue-50 text-blue-700',    dot: 'bg-blue-500' },
-  Design:      { border: 'border-t-rose-500',    badge: 'bg-rose-50 text-rose-700',    dot: 'bg-rose-500' },
-  Business:    { border: 'border-t-emerald-500', badge: 'bg-emerald-50 text-emerald-700', dot: 'bg-emerald-500' },
-  Language:    { border: 'border-t-amber-500',   badge: 'bg-amber-50 text-amber-700',  dot: 'bg-amber-500' },
-  Science:     { border: 'border-t-violet-500',  badge: 'bg-violet-50 text-violet-700', dot: 'bg-violet-500' },
-  Mathematics: { border: 'border-t-indigo-500',  badge: 'bg-indigo-50 text-indigo-700', dot: 'bg-indigo-500' },
-  Arts:        { border: 'border-t-orange-500',  badge: 'bg-orange-50 text-orange-700', dot: 'bg-orange-500' },
-};
-const DEFAULT_GENRE_COLORS = { border: 'border-t-slate-400', badge: 'bg-slate-100 text-slate-700', dot: 'bg-slate-400' };
-
-function formatDate(dateString: string) {
-  return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
-function LessonListItem({ lesson, isOwned }: { lesson: Lesson; isOwned: boolean }) {
-  const navigate = useNavigate();
-  const colors = GENRE_COLORS[lesson.genre?.name ?? ''] ?? DEFAULT_GENRE_COLORS;
-
-  return (
-    <div
-      onClick={() => navigate(`/lessons/${lesson.id}`)}
-      className="bg-white rounded-lg border border-slate-200 p-4 hover:border-slate-300 hover:shadow-sm transition-all cursor-pointer"
-      data-testid={`library-lesson-list-${lesson.id}`}
-    >
-      <div className="flex items-center gap-3">
-        <div className={`hidden sm:block w-1 self-stretch rounded-full shrink-0 ${colors.dot}`} />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="text-sm font-semibold text-slate-900" data-testid="lesson-list-title">
-              {lesson.title}
-            </h3>
-            {!isOwned && (
-              <span className="shrink-0 px-2 py-0.5 bg-amber-50 text-amber-700 text-xs rounded-full font-medium border border-amber-200" data-testid="lesson-list-shared-by">
-                Shared{lesson.shared_by ? ` · ${lesson.shared_by}` : ''}
-              </span>
-            )}
-          </div>
-          <p className="text-sm text-slate-500 line-clamp-1 mb-2" data-testid="lesson-list-description">
-            {lesson.description}
-          </p>
-          <div className="flex flex-wrap items-center gap-1.5">
-            {lesson.genre && (
-              <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${colors.badge}`} data-testid="lesson-list-genre">
-                {lesson.genre.name}
-              </span>
-            )}
-            {lesson.tags?.map(tag => (
-              <span key={tag} className="px-2 py-0.5 border border-slate-200 text-slate-500 text-xs rounded-full" data-testid="lesson-list-tag">
-                {tag}
-              </span>
-            ))}
-          </div>
-        </div>
-        <div className="flex flex-col items-end gap-1 text-xs text-slate-400 whitespace-nowrap shrink-0">
-          <span data-testid="lesson-list-date">{formatDate(lesson.created_at)}</span>
-          {lesson.files && lesson.files.length > 0 && (
-            <span data-testid="lesson-list-file-count">{lesson.files.length} file{lesson.files.length !== 1 ? 's' : ''}</span>
-          )}
-          {lesson.total_file_size !== undefined && lesson.total_file_size > 0 && (
-            <span data-testid="lesson-list-file-size">{lesson.total_file_size.toFixed(1)} MB</span>
-          )}
-        </div>
       </div>
     </div>
   );
 }
 
-function LessonCard({ lesson, isOwned }: { lesson: Lesson; isOwned: boolean }) {
+// ── Color system ──────────────────────────────────────────────────────────────
+
+export const GENRE_COLORS: Record<string, { bg: string; text: string }> = {
+  Arts:        { bg: 'oklch(0.93 0.05 340)', text: 'oklch(0.45 0.15 340)' },
+  Business:    { bg: 'oklch(0.94 0.05 80)',  text: 'oklch(0.45 0.14 80)'  },
+  Design:      { bg: 'oklch(0.93 0.05 300)', text: 'oklch(0.45 0.16 300)' },
+  Language:    { bg: 'oklch(0.93 0.05 200)', text: 'oklch(0.45 0.14 200)' },
+  Mathematics: { bg: 'oklch(0.93 0.05 250)', text: 'oklch(0.45 0.16 250)' },
+  Programming: { bg: 'oklch(0.93 0.05 178)', text: 'oklch(0.42 0.14 178)' },
+  Science:     { bg: 'oklch(0.93 0.05 130)', text: 'oklch(0.42 0.14 130)' },
+};
+const DEFAULT_GENRE_COLORS = { bg: 'var(--surface2)', text: 'var(--text-secondary)' };
+
+const BAR_COLORS: Record<string, string> = {
+  Arts:        'oklch(0.62 0.19 340)',
+  Business:    'oklch(0.68 0.17 55)',
+  Design:      'oklch(0.60 0.20 300)',
+  Language:    'oklch(0.60 0.16 200)',
+  Mathematics: 'oklch(0.58 0.20 265)',
+  Programming: 'oklch(0.56 0.16 178)',
+  Science:     'oklch(0.58 0.18 145)',
+};
+
+const TINT_BG: Record<string, string> = {
+  Arts:        'oklch(0.985 0.012 340)',
+  Business:    'oklch(0.985 0.012 55)',
+  Design:      'oklch(0.985 0.012 300)',
+  Language:    'oklch(0.985 0.012 200)',
+  Mathematics: 'oklch(0.985 0.012 265)',
+  Programming: 'oklch(0.985 0.012 178)',
+  Science:     'oklch(0.985 0.012 145)',
+};
+
+function formatDate(dateString: string) {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+// ── LessonListItem ─────────────────────────────────────────────────────────────
+
+function LessonListItem({ lesson, isOwned }: { lesson: Lesson; isOwned: boolean }) {
   const navigate = useNavigate();
-  const colors = GENRE_COLORS[lesson.genre?.name ?? ''] ?? DEFAULT_GENRE_COLORS;
+  const [hovered, setHovered] = useState(false);
+  const genreName = lesson.genre?.name ?? '';
+  const colors = GENRE_COLORS[genreName] ?? DEFAULT_GENRE_COLORS;
+  const barColor = BAR_COLORS[genreName] ?? 'var(--border)';
 
   return (
     <div
       onClick={() => navigate(`/lessons/${lesson.id}`)}
-      className={`bg-white rounded-lg border border-slate-200 border-t-4 ${colors.border} p-5 hover:border-slate-300 hover:shadow-md transition-all cursor-pointer flex flex-col`}
-      data-testid={`library-lesson-card-${lesson.id}`}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="flex items-center gap-3.5 px-[18px] py-[13px] cursor-pointer"
+      style={{
+        background: hovered ? 'var(--surface2)' : 'transparent',
+        borderLeft: `3px solid ${hovered ? barColor : 'transparent'}`,
+        transition: 'background 0.12s',
+      }}
+      data-testid={`library-lesson-list-${lesson.id}`}
     >
-      <div className="flex-1 mb-3">
-        <div className="flex items-start justify-between gap-2 mb-1">
-          <h3 className="text-base font-semibold text-slate-900 leading-snug" data-testid="lesson-card-title">
+      {/* Genre dot */}
+      <div
+        className="shrink-0 rounded-full"
+        style={{ width: 8, height: 8, background: barColor }}
+      />
+
+      {/* Text content */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-0.5">
+          <span
+            className="text-sm font-semibold tracking-tight"
+            style={{ color: 'var(--text-primary)' }}
+            data-testid="lesson-list-title"
+          >
             {lesson.title}
-          </h3>
+          </span>
           {!isOwned && (
-            <span className="shrink-0 px-2 py-0.5 bg-amber-50 text-amber-700 text-xs rounded-full font-medium border border-amber-200" data-testid="lesson-card-shared-by">
-              Shared
+            <span
+              className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+              style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}
+              data-testid="lesson-list-shared-by"
+            >
+              Shared{lesson.shared_by ? ` · ${lesson.shared_by}` : ''}
             </span>
           )}
         </div>
-        {!isOwned && lesson.shared_by && (
-          <p className="text-xs text-slate-400 mb-1">by {lesson.shared_by}</p>
-        )}
-        <p className="text-sm text-slate-500 line-clamp-2" data-testid="lesson-card-description">
+        <p
+          className="text-xs line-clamp-1"
+          style={{ color: 'var(--text-secondary)' }}
+          data-testid="lesson-list-description"
+        >
           {lesson.description}
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-1.5 mb-4">
-        {lesson.genre && (
-          <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${colors.badge}`} data-testid="lesson-card-genre">
-            {lesson.genre.name}
-          </span>
-        )}
-        {lesson.tags?.slice(0, 2).map(tag => (
-          <span key={tag} className="px-2 py-0.5 border border-slate-200 text-slate-500 text-xs rounded-full" data-testid="lesson-card-tag">
-            {tag}
-          </span>
-        ))}
-        {(lesson.tags?.length ?? 0) > 2 && (
-          <span className="px-2 py-0.5 border border-slate-200 text-slate-400 text-xs rounded-full">
-            +{lesson.tags!.length - 2}
-          </span>
-        )}
-      </div>
+      {/* Genre tag */}
+      {lesson.genre && (
+        <span
+          className="shrink-0 text-[11px] font-medium font-mono rounded-full"
+          style={{ background: colors.bg, color: colors.text, padding: '3px 9px' }}
+          data-testid="lesson-list-genre"
+        >
+          {lesson.genre.name}
+        </span>
+      )}
 
-      <div className="flex items-center justify-between pt-3 border-t border-slate-100 text-xs text-slate-400">
-        <span data-testid="lesson-card-date">{formatDate(lesson.created_at)}</span>
-        {lesson.files && lesson.files.length > 0 && (
-          <span data-testid="lesson-card-file-count">{lesson.files.length} file{lesson.files.length !== 1 ? 's' : ''}</span>
-        )}
+      {/* Date */}
+      <span
+        className="shrink-0 text-[11px] font-mono text-right"
+        style={{ color: 'var(--text-muted)', width: 80 }}
+        data-testid="lesson-list-date"
+      >
+        {formatDate(lesson.created_at)}
+      </span>
+
+      {/* File count */}
+      <span
+        className="shrink-0 flex items-center justify-end gap-[3px] text-[11px] font-mono"
+        style={{ color: 'var(--text-muted)', width: 44 }}
+        data-testid="lesson-list-file-count"
+      >
+        <File className="w-[11px] h-[11px]" />
+        {lesson.files?.length ?? 0}
+      </span>
+    </div>
+  );
+}
+
+// ── LessonCard ─────────────────────────────────────────────────────────────────
+
+function LessonCard({ lesson, isOwned }: { lesson: Lesson; isOwned: boolean }) {
+  const navigate = useNavigate();
+  const [hovered, setHovered] = useState(false);
+  const genreName = lesson.genre?.name ?? '';
+  const colors = GENRE_COLORS[genreName] ?? DEFAULT_GENRE_COLORS;
+  const barColor = BAR_COLORS[genreName] ?? 'var(--border)';
+  const tintBg = TINT_BG[genreName] ?? 'var(--surface)';
+
+  return (
+    <div
+      onClick={() => navigate(`/lessons/${lesson.id}`)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="cursor-pointer flex flex-col"
+      style={{
+        borderRadius: 'var(--radius)',
+        overflow: 'hidden',
+        border: `1px solid ${hovered ? barColor : 'var(--border-light)'}`,
+        background: hovered ? 'var(--surface)' : tintBg,
+        boxShadow: hovered ? 'var(--shadow-md)' : 'var(--shadow-sm)',
+        transform: hovered ? 'translateY(-2px)' : 'translateY(0)',
+        transition: 'all 0.15s ease',
+      }}
+      data-testid={`library-lesson-card-${lesson.id}`}
+    >
+      {/* Genre color bar */}
+      <div style={{ height: 4, background: barColor, flexShrink: 0 }} />
+
+      <div className="flex flex-col flex-1 px-[18px] pt-4 pb-[14px]">
+        {/* Genre tag + shared badge */}
+        <div className="flex items-center justify-between mb-2.5">
+          {lesson.genre && (
+            <span
+              className="text-[11px] font-medium font-mono rounded-full"
+              style={{ background: colors.bg, color: colors.text, padding: '3px 9px' }}
+              data-testid="lesson-card-genre"
+            >
+              {lesson.genre.name}
+            </span>
+          )}
+          {!isOwned && (
+            <span
+              className="shrink-0 flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-full font-semibold"
+              style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}
+              data-testid="lesson-card-shared-by"
+            >
+              <Share2 className="w-2.5 h-2.5" />
+              Shared{lesson.shared_by ? ` · ${lesson.shared_by}` : ''}
+            </span>
+          )}
+        </div>
+
+        {/* Title */}
+        <h3
+          className="text-[15px] font-bold leading-snug tracking-tight mb-[7px]"
+          style={{ color: 'var(--text-primary)' }}
+          data-testid="lesson-card-title"
+        >
+          {lesson.title}
+        </h3>
+
+        {/* Description */}
+        <p
+          className="text-[12.5px] line-clamp-2 flex-1 mb-3"
+          style={{ color: 'var(--text-secondary)', lineHeight: 1.55 }}
+          data-testid="lesson-card-description"
+        >
+          {lesson.description}
+        </p>
+
+        {/* Tags */}
+        <div className="flex flex-wrap gap-[5px] mb-3.5">
+          {lesson.tags?.slice(0, 3).map((tag) => (
+            <span
+              key={tag}
+              className="text-[10px] font-medium font-mono rounded-full"
+              style={{
+                background: 'var(--surface2)',
+                color: 'var(--text-muted)',
+                padding: '2px 7px',
+              }}
+              data-testid="lesson-card-tag"
+            >
+              {tag}
+            </span>
+          ))}
+          {(lesson.tags?.length ?? 0) > 3 && (
+            <span
+              className="text-[10px] font-medium font-mono rounded-full"
+              style={{ background: 'var(--surface2)', color: 'var(--text-muted)', padding: '2px 7px' }}
+            >
+              +{lesson.tags!.length - 3}
+            </span>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div
+          className="flex items-center justify-between pt-2.5 text-[11px] font-mono"
+          style={{
+            borderTop: `1px solid ${hovered ? 'var(--border)' : 'var(--border-light)'}`,
+            color: 'var(--text-muted)',
+          }}
+        >
+          <span data-testid="lesson-card-date">{formatDate(lesson.created_at)}</span>
+          {lesson.files && lesson.files.length > 0 && (
+            <span className="flex items-center gap-1" data-testid="lesson-card-file-count">
+              <File className="w-[11px] h-[11px]" />
+              {lesson.files.length} {lesson.files.length === 1 ? 'file' : 'files'}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeSanitize from 'rehype-sanitize';
 import { supabase } from '../lib/supabase';
-import { MessageCircle, Send, Trash2, Loader2, Download } from 'lucide-react';
+import { Sparkles, Send, Trash2, Loader2, Download, MessageCircle } from 'lucide-react';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -11,6 +11,7 @@ interface Message {
 
 interface LessonQAPanelProps {
   lessonId: string;
+  columnMode?: boolean;
 }
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
@@ -27,7 +28,7 @@ async function callFunction(name: string, body: Record<string, string>, token: s
   return resp;
 }
 
-export default function LessonQAPanel({ lessonId }: LessonQAPanelProps) {
+export default function LessonQAPanel({ lessonId, columnMode = false }: LessonQAPanelProps) {
   const [qaEnabled, setQaEnabled] = useState<boolean | null>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'no_files' | 'error'>('loading');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -36,7 +37,6 @@ export default function LessonQAPanel({ lessonId }: LessonQAPanelProps) {
   const [error, setError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Check qa_enabled on mount
   useEffect(() => {
     supabase
       .from('app_config')
@@ -46,7 +46,6 @@ export default function LessonQAPanel({ lessonId }: LessonQAPanelProps) {
       .then(({ data }) => setQaEnabled(data?.value !== 'false'));
   }, []);
 
-  // Once we know Q&A is enabled, check lesson status + load history
   useEffect(() => {
     if (!qaEnabled) return;
 
@@ -55,22 +54,12 @@ export default function LessonQAPanel({ lessonId }: LessonQAPanelProps) {
       if (!session) return;
       const token = session.access_token;
 
-      // Quick status check (returns immediately)
       const indexResp = await callFunction('lesson-qa-index', { lesson_id: lessonId }, token);
-
-      if (!indexResp.ok) {
-        setStatus('no_files');
-        return;
-      }
+      if (!indexResp.ok) { setStatus('no_files'); return; }
 
       const indexData = await indexResp.json();
+      if (indexData.status === 'no_files') { setStatus('no_files'); return; }
 
-      if (indexData.status === 'no_files') {
-        setStatus('no_files');
-        return;
-      }
-
-      // Load the most recent 50 messages, newest-first, then reverse for display
       const { data: history } = await supabase
         .from('lesson_qa_messages')
         .select('role, content')
@@ -78,17 +67,13 @@ export default function LessonQAPanel({ lessonId }: LessonQAPanelProps) {
         .order('created_at', { ascending: false })
         .limit(50);
 
-      if (history) {
-        setMessages((history as Message[]).reverse());
-      }
-
+      if (history) setMessages((history as Message[]).reverse());
       setStatus('ready');
     };
 
     init().catch(() => setStatus('error'));
   }, [qaEnabled, lessonId]);
 
-  // Scroll to bottom when messages change
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -101,39 +86,22 @@ export default function LessonQAPanel({ lessonId }: LessonQAPanelProps) {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
-    // Optimistic user bubble
     setMessages(prev => [...prev, { role: 'user', content: question }]);
     setInput('');
     setAsking(true);
     setError(null);
 
-    // Placeholder assistant bubble
-    setMessages(prev => [...prev, { role: 'assistant', content: '…' }]);
-
     try {
-      const resp = await callFunction(
-        'lesson-qa-ask',
-        { lesson_id: lessonId, question },
-        session.access_token,
-      );
-
+      const resp = await callFunction('lesson-qa-ask', { lesson_id: lessonId, question }, session.access_token);
       if (!resp.ok) {
-        setMessages(prev => prev.slice(0, -1)); // remove placeholder
         let errorMsg = 'Something went wrong. Please try again.';
-        try {
-          const data = await resp.json();
-          errorMsg = data.error ?? errorMsg;
-        } catch { /* non-JSON error body — keep default message */ }
+        try { const d = await resp.json(); errorMsg = d.error ?? errorMsg; } catch { /* non-JSON */ }
         setError(errorMsg);
       } else {
         const data = await resp.json();
-        setMessages(prev => [
-          ...prev.slice(0, -1),
-          { role: 'assistant', content: data.answer },
-        ]);
+        setMessages(prev => [...prev, { role: 'assistant', content: data.answer }]);
       }
     } catch {
-      setMessages(prev => prev.slice(0, -1));
       setError('Network error. Please try again.');
     } finally {
       setAsking(false);
@@ -150,175 +118,259 @@ export default function LessonQAPanel({ lessonId }: LessonQAPanelProps) {
     const blob = new Blob([content], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
+    a.href = url; a.download = filename; a.click();
     URL.revokeObjectURL(url);
   };
 
   const handleClear = async () => {
     if (!window.confirm('Clear your conversation history for this lesson?\n\nRemember to Save your chat first if you want to keep it.')) return;
-
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
-
     await callFunction('lesson-qa-clear', { lesson_id: lessonId }, session.access_token);
     setMessages([]);
   };
 
-  // Not yet checked
-  if (qaEnabled === null) return null;
-  // Feature disabled
-  if (qaEnabled === false) return null;
+  if (qaEnabled === null || qaEnabled === false) return null;
+
+  // ── Header ────────────────────────────────────────────────────────────────────
+  const header = (
+    <div
+      className="flex items-center justify-between shrink-0"
+      style={{
+        padding: '16px 18px',
+        borderBottom: '1px solid var(--border-light)',
+        background: columnMode ? 'var(--surface)' : 'var(--surface2)',
+      }}
+    >
+      <div className="flex items-center gap-2">
+        <div
+          className="flex items-center justify-center rounded-md shrink-0"
+          style={{ width: 26, height: 26, background: 'linear-gradient(135deg, var(--accent) 0%, var(--teal) 100%)' }}
+        >
+          <Sparkles className="w-3 h-3 text-white" />
+        </div>
+        <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Ask this lesson</span>
+      </div>
+      {status === 'ready' && messages.length > 0 && (
+        <div className="flex items-center gap-1">
+          <button
+            onClick={handleSaveMd}
+            className="flex items-center justify-center rounded"
+            style={{ width: 28, height: 28, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
+            title="Export chat"
+            data-testid="lesson-qa-save-md-button"
+          >
+            <Download className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={handleClear}
+            className="flex items-center justify-center rounded"
+            style={{ width: 28, height: 28, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
+            title="Clear chat"
+            data-testid="lesson-qa-clear-button"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
+  // ── Messages ──────────────────────────────────────────────────────────────────
+  const messagesArea = (
+    <div
+      className="flex flex-col gap-3.5 overflow-y-auto"
+      style={{ flex: 1, padding: 16 }}
+    >
+      {/* Empty state */}
+      {status === 'ready' && messages.length === 0 && (
+        <div className="flex flex-col items-center justify-center h-full text-center" style={{ padding: '40px 16px', color: 'var(--text-muted)' }}>
+          <MessageCircle className="w-7 h-7 mb-2.5" />
+          <p className="text-sm" style={{ lineHeight: 1.5 }}>Ask any question about this lesson's content</p>
+        </div>
+      )}
+
+      {/* Loading */}
+      {status === 'loading' && (
+        <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-secondary)' }} data-testid="lesson-qa-indexing-indicator">
+          <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--accent)' }} />
+          <span>Loading…</span>
+        </div>
+      )}
+
+      {/* No files */}
+      {status === 'no_files' && (
+        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+          Upload PDF files to this lesson to enable Q&amp;A.
+        </p>
+      )}
+
+      {/* Error */}
+      {status === 'error' && (
+        <p className="text-sm" style={{ color: 'var(--red)' }}>
+          Failed to load Q&amp;A. Please refresh the page.
+        </p>
+      )}
+
+      {/* Messages */}
+      {messages.map((msg, idx) => (
+        <div
+          key={idx}
+          className={`flex flex-col gap-1 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
+          data-testid={`lesson-qa-message-${idx}`}
+        >
+          <div
+            className="text-sm"
+            style={{
+              maxWidth: '85%',
+              padding: '10px 13px',
+              borderRadius: msg.role === 'user' ? '12px 12px 3px 12px' : '12px 12px 12px 3px',
+              background: msg.role === 'user' ? 'var(--accent)' : 'var(--surface2)',
+              color: msg.role === 'user' ? '#fff' : 'var(--text-primary)',
+              lineHeight: 1.5,
+            }}
+          >
+            {msg.role === 'user' ? (
+              <span className="whitespace-pre-wrap">{msg.content}</span>
+            ) : (
+              <div className="prose prose-sm max-w-none" style={{ color: 'var(--text-primary)' }}>
+                <ReactMarkdown
+                  rehypePlugins={[rehypeSanitize]}
+                  components={{
+                    a: ({ children, href }) => (
+                      <a href={href} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', textDecoration: 'underline' }}>
+                        {children}
+                      </a>
+                    ),
+                    code: ({ children, className }) => {
+                      const isBlock = className?.includes('language-');
+                      return isBlock ? (
+                        <code className={className}>{children}</code>
+                      ) : (
+                        <code className="font-mono text-xs rounded px-1" style={{ background: 'var(--text-primary)', color: 'var(--surface)' }}>
+                          {children}
+                        </code>
+                      );
+                    },
+                    pre: ({ children }) => (
+                      <pre className="font-mono text-xs rounded p-3 overflow-x-auto my-2" style={{ background: 'var(--text-primary)', color: 'var(--surface)' }}>
+                        {children}
+                      </pre>
+                    ),
+                  }}
+                >
+                  {msg.content}
+                </ReactMarkdown>
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+
+      {/* Asking — bouncing dots */}
+      {asking && (
+        <div className="flex items-start">
+          <div
+            className="flex items-center gap-1.5 px-4 py-3 rounded-[12px_12px_12px_3px]"
+            style={{ background: 'var(--surface2)' }}
+          >
+            {[0, 1, 2].map(i => (
+              <div
+                key={i}
+                className="rounded-full"
+                style={{
+                  width: 7, height: 7,
+                  background: 'var(--text-muted)',
+                  animation: `qa-bounce 1.2s ${i * 0.2}s ease-in-out infinite`,
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Error banner */}
+      {error && (
+        <p className="text-xs rounded px-3 py-2" style={{ color: 'var(--red)', background: 'var(--red-light)' }}>{error}</p>
+      )}
+
+      <div ref={bottomRef} />
+    </div>
+  );
+
+  // ── Input ─────────────────────────────────────────────────────────────────────
+  const inputArea = (
+    <div className="shrink-0" style={{ padding: '12px 14px', borderTop: '1px solid var(--border-light)' }}>
+      <div className="flex items-end gap-2">
+        <textarea
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              handleSubmit(e as unknown as React.FormEvent);
+            }
+          }}
+          placeholder="Ask a question about this lesson…"
+          rows={2}
+          maxLength={500}
+          disabled={asking || status !== 'ready'}
+          className="flex-1 resize-none text-sm focus:outline-none disabled:opacity-50"
+          style={{
+            border: '1px solid var(--border)',
+            borderRadius: 8,
+            padding: '9px 11px',
+            fontSize: 13,
+            color: 'var(--text-primary)',
+            background: 'var(--bg)',
+            lineHeight: 1.4,
+            fontFamily: 'inherit',
+          }}
+          data-testid="lesson-qa-input"
+        />
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={!input.trim() || asking || status !== 'ready'}
+          className="flex items-center justify-center shrink-0"
+          style={{
+            width: 36, height: 36,
+            borderRadius: 8,
+            border: 'none',
+            background: input.trim() && !asking ? 'var(--accent)' : 'var(--surface2)',
+            color: input.trim() && !asking ? '#fff' : 'var(--text-muted)',
+            cursor: input.trim() && !asking ? 'pointer' : 'default',
+          }}
+          data-testid="lesson-qa-submit-button"
+        >
+          <Send className="w-3.5 h-3.5" />
+        </button>
+      </div>
+      <div className="text-right mt-1.5 text-[10px] font-mono" style={{ color: 'var(--text-muted)' }}>{input.length}/500</div>
+    </div>
+  );
+
+  // ── Render ────────────────────────────────────────────────────────────────────
+  if (columnMode) {
+    return (
+      <div className="flex flex-col h-full" data-testid="lesson-qa-panel">
+        {header}
+        {messagesArea}
+        {inputArea}
+      </div>
+    );
+  }
 
   return (
     <div
-      className="bg-white rounded-lg shadow-sm border border-slate-200 mt-6"
+      className="rounded-[var(--radius-lg)] overflow-hidden"
+      style={{ background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}
       data-testid="lesson-qa-panel"
     >
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-        <div className="flex items-center space-x-2">
-          <MessageCircle className="w-5 h-5 text-slate-600" />
-          <h2 className="text-base font-semibold text-slate-900">Ask this lesson</h2>
-        </div>
-        {status === 'ready' && messages.length > 0 && (
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={handleSaveMd}
-              className="flex items-center space-x-1 text-xs text-slate-500 hover:text-slate-900 transition-colors"
-              data-testid="lesson-qa-save-md-button"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Save</span>
-            </button>
-            <button
-              onClick={handleClear}
-              className="flex items-center space-x-1 text-xs text-slate-500 hover:text-red-600 transition-colors"
-              data-testid="lesson-qa-clear-button"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>Clear</span>
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Body */}
-      <div className="p-6">
-        {/* Loading state */}
-        {status === 'loading' && (
-          <div className="flex items-center space-x-2 text-slate-500 text-sm" data-testid="lesson-qa-indexing-indicator">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            <span>Loading…</span>
-          </div>
-        )}
-
-        {/* No files */}
-        {status === 'no_files' && (
-          <p className="text-sm text-slate-500">
-            Upload PDF files to this lesson to enable Q&amp;A.
-          </p>
-        )}
-
-        {/* Error */}
-        {status === 'error' && (
-          <p className="text-sm text-red-600">
-            Failed to load Q&amp;A. Please refresh the page.
-          </p>
-        )}
-
-        {/* Chat UI */}
-        {status === 'ready' && (
-          <div className="flex flex-col space-y-4">
-            {/* Message history */}
-            {messages.length > 0 && (
-              <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
-                {messages.map((msg, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                    data-testid={`lesson-qa-message-${idx}`}
-                  >
-                    {msg.role === 'user' ? (
-                      <div className="max-w-[80%] rounded-lg px-4 py-2 text-sm whitespace-pre-wrap bg-slate-900 text-white">
-                        {msg.content}
-                      </div>
-                    ) : (
-                      <div className="max-w-[80%] rounded-lg px-4 py-2 text-sm bg-slate-100 text-slate-800 prose prose-sm prose-slate max-w-none">
-                        <ReactMarkdown
-                          rehypePlugins={[rehypeSanitize]}
-                          components={{
-                            a: ({ children, href }) => (
-                              <a href={href} target="_blank" rel="noreferrer" className="underline text-blue-600 hover:text-blue-800">
-                                {children}
-                              </a>
-                            ),
-                            code: ({ children, className }) => {
-                              const isBlock = className?.includes('language-');
-                              return isBlock ? (
-                                <code className={className}>{children}</code>
-                              ) : (
-                                <code className="font-mono text-sm bg-slate-800 text-slate-100 rounded px-1">
-                                  {children}
-                                </code>
-                              );
-                            },
-                            pre: ({ children }) => (
-                              <pre className="bg-slate-800 text-slate-100 rounded p-3 overflow-x-auto font-mono text-sm my-2">
-                                {children}
-                              </pre>
-                            ),
-                          }}
-                        >
-                          {msg.content}
-                        </ReactMarkdown>
-                      </div>
-                    )}
-                  </div>
-                ))}
-                <div ref={bottomRef} />
-              </div>
-            )}
-
-            {/* Error banner */}
-            {error && (
-              <p className="text-xs text-red-600 bg-red-50 rounded px-3 py-2">{error}</p>
-            )}
-
-            {/* Input form */}
-            <form onSubmit={handleSubmit} className="flex items-end space-x-2">
-              <textarea
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSubmit(e as unknown as React.FormEvent);
-                  }
-                }}
-                placeholder="Ask a question about this lesson…"
-                rows={2}
-                maxLength={500}
-                disabled={asking}
-                className="flex-1 resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 disabled:opacity-50"
-                data-testid="lesson-qa-input"
-              />
-              <button
-                type="submit"
-                disabled={!input.trim() || asking}
-                className="flex items-center justify-center w-10 h-10 rounded-lg bg-slate-900 text-white hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex-shrink-0"
-                data-testid="lesson-qa-submit-button"
-              >
-                {asking
-                  ? <Loader2 className="w-4 h-4 animate-spin" />
-                  : <Send className="w-4 h-4" />
-                }
-              </button>
-            </form>
-            <p className="text-xs text-slate-400">{input.length}/500</p>
-          </div>
-        )}
+      {header}
+      <div className="flex flex-col gap-4 p-5">
+        {messagesArea}
+        {inputArea}
       </div>
     </div>
   );

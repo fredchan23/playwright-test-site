@@ -181,28 +181,37 @@ export default function CreateLessonPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center h-16">
-            <button
-              onClick={handleCancel}
-              className="flex items-center space-x-2 text-slate-700 hover:text-slate-900"
-              data-testid="create-lesson-back-button"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              <span>Back to Library</span>
-            </button>
-          </div>
-        </div>
-      </header>
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ background: 'var(--bg)' }}>
+      {/* Top bar */}
+      <div
+        className="px-7 py-3.5 flex items-center shrink-0"
+        style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border-light)' }}
+      >
+        <button
+          onClick={handleCancel}
+          className="flex items-center gap-1.5 text-sm font-medium"
+          style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+          data-testid="create-lesson-back-button"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          Back to Library
+        </button>
+      </div>
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold text-slate-900 mb-8">Create New Lesson</h1>
+      <div className="flex-1 overflow-y-auto px-7 py-9 flex justify-center">
+        <div className="w-full max-w-[600px]">
+        <h1 className="text-2xl font-bold tracking-tight mb-7" style={{ color: 'var(--text-primary)' }}>
+          Create New Lesson
+        </h1>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm border border-slate-200 p-8" data-testid="create-lesson-form">
-          <div className="mb-6">
-            <label htmlFor="title" className="block text-sm font-medium text-slate-700 mb-2">
+        <form
+          onSubmit={handleSubmit}
+          className="rounded-[var(--radius-lg)] p-7 flex flex-col gap-5"
+          style={{ background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}
+          data-testid="create-lesson-form"
+        >
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="title" className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
               Title *
             </label>
             <input
@@ -210,22 +219,25 @@ export default function CreateLessonPage() {
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent ${
-                errors.title ? 'border-red-500' : 'border-slate-300'
-              }`}
               placeholder="Enter lesson title"
+              style={{
+                border: `1px solid ${errors.title ? 'oklch(0.58 0.18 25)' : 'var(--border)'}`,
+                borderRadius: 8, padding: '10px 12px', fontSize: 14,
+                color: 'var(--text-primary)', background: 'var(--surface)',
+                outline: 'none', height: 40, fontFamily: 'inherit', width: '100%',
+              }}
               data-testid="create-lesson-title-input"
               aria-label="Lesson title"
             />
             {errors.title && (
-              <p className="mt-1 text-sm text-red-600" data-testid="create-lesson-title-error">
+              <p className="text-xs" style={{ color: 'oklch(0.45 0.18 25)' }} data-testid="create-lesson-title-error">
                 {errors.title}
               </p>
             )}
           </div>
 
-          <div className="mb-6">
-            <label htmlFor="description" className="block text-sm font-medium text-slate-700 mb-2">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="description" className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
               Description *
             </label>
             <textarea
@@ -233,29 +245,36 @@ export default function CreateLessonPage() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={6}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent ${
-                errors.description ? 'border-red-500' : 'border-slate-300'
-              }`}
               placeholder="Enter lesson description"
+              style={{
+                border: `1px solid ${errors.description ? 'oklch(0.58 0.18 25)' : 'var(--border)'}`,
+                borderRadius: 8, padding: '10px 12px', fontSize: 14,
+                color: 'var(--text-primary)', background: 'var(--surface)',
+                outline: 'none', resize: 'vertical', lineHeight: 1.5, fontFamily: 'inherit', width: '100%',
+              }}
               data-testid="create-lesson-description-input"
               aria-label="Lesson description"
             />
             {errors.description && (
-              <p className="mt-1 text-sm text-red-600" data-testid="create-lesson-description-error">
+              <p className="text-xs" style={{ color: 'oklch(0.45 0.18 25)' }} data-testid="create-lesson-description-error">
                 {errors.description}
               </p>
             )}
           </div>
 
-          <div className="mb-6">
-            <label htmlFor="genre" className="block text-sm font-medium text-slate-700 mb-2">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="genre" className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
               Genre
             </label>
             <select
               id="genre"
               value={genreId}
               onChange={(e) => setGenreId(e.target.value)}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent"
+              style={{
+                border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px',
+                fontSize: 14, color: 'var(--text-primary)', background: 'var(--surface)',
+                outline: 'none', height: 40, fontFamily: 'inherit', appearance: 'none', width: '100%',
+              }}
               data-testid="create-lesson-genre-dropdown"
               aria-label="Select genre"
             >
@@ -268,8 +287,8 @@ export default function CreateLessonPage() {
             </select>
           </div>
 
-          <div className="mb-6">
-            <label htmlFor="tags" className="block text-sm font-medium text-slate-700 mb-2">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="tags" className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
               Tags
             </label>
             <input
@@ -278,27 +297,32 @@ export default function CreateLessonPage() {
               value={tagInput}
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={handleTagInput}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent"
               placeholder="Enter tags separated by commas"
+              style={{
+                border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px',
+                fontSize: 14, color: 'var(--text-primary)', background: 'var(--surface)',
+                outline: 'none', height: 40, fontFamily: 'inherit', width: '100%',
+              }}
               data-testid="create-lesson-tags-input"
               aria-label="Lesson tags"
             />
             {tags.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5 mt-1">
                 {tags.map(tag => (
                   <span
                     key={tag}
-                    className="flex items-center space-x-1 px-3 py-1 bg-slate-100 text-slate-700 rounded-lg"
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs"
+                    style={{ background: 'var(--surface2)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
                     data-testid={`create-lesson-tag-chip-${tag}`}
                   >
                     <span>{tag}</span>
                     <button
                       type="button"
                       onClick={() => removeTag(tag)}
-                      className="text-slate-500 hover:text-slate-700"
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-muted)' }}
                       data-testid={`create-lesson-tag-remove-${tag}`}
                     >
-                      <X className="w-4 h-4" />
+                      <X className="w-3 h-3" />
                     </button>
                   </span>
                 ))}
@@ -306,19 +330,32 @@ export default function CreateLessonPage() {
             )}
           </div>
 
-          <div className="mb-8">
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Files (PDF, JPG, PNG, GIF - Max 10MB each)
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+              Files{' '}
+              <span className="font-normal" style={{ color: 'var(--text-muted)' }}>
+                (PDF, JPG, PNG, GIF — Max 10MB each)
+              </span>
             </label>
             <div
               onDrop={handleDrop}
               onDragOver={(e) => e.preventDefault()}
-              className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center hover:border-slate-400 transition-colors"
+              className="rounded-[var(--radius)] p-8 text-center"
+              style={{
+                border: '2px dashed var(--border)',
+                background: 'var(--surface2)',
+                cursor: 'pointer',
+              }}
               data-testid="create-lesson-upload-dropzone"
             >
-              <Upload className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-              <p className="text-slate-600 mb-2">Drag and drop files here, or</p>
-              <label className="inline-block px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 cursor-pointer transition-colors">
+              <Upload className="w-7 h-7 mx-auto mb-3" style={{ color: 'var(--text-muted)' }} />
+              <p className="text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>
+                Drag and drop files here, or
+              </p>
+              <label
+                className="inline-block px-4 py-1.5 rounded-lg text-sm font-medium cursor-pointer"
+                style={{ background: 'var(--surface)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
+              >
                 <span data-testid="create-lesson-choose-files-button">Choose Files</span>
                 <input
                   type="file"
@@ -331,39 +368,40 @@ export default function CreateLessonPage() {
               </label>
             </div>
             {errors.files && (
-              <p className="mt-2 text-sm text-red-600" data-testid="create-lesson-file-error">
+              <p className="text-xs" style={{ color: 'oklch(0.45 0.18 25)' }} data-testid="create-lesson-file-error">
                 {errors.files}
               </p>
             )}
 
             {files.length > 0 && (
-              <div className="mt-4 space-y-3" data-testid="create-lesson-files-list">
+              <div className="flex flex-col gap-2 mt-1" data-testid="create-lesson-files-list">
                 {files.map((uploadedFile, index) => (
                   <div
                     key={index}
-                    className="flex items-center space-x-3 p-3 bg-slate-50 rounded-lg"
+                    className="flex items-center gap-3 p-3 rounded-lg"
+                    style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}
                     data-testid={`create-lesson-file-item-${index}`}
                   >
                     {uploadedFile.preview ? (
-                      <img src={uploadedFile.preview} alt="" className="w-12 h-12 object-cover rounded" />
+                      <img src={uploadedFile.preview} alt="" className="w-10 h-10 object-cover rounded" />
                     ) : (
-                      <FileText className="w-12 h-12 text-slate-400" />
+                      <FileText className="w-10 h-10" style={{ color: 'var(--text-muted)' }} />
                     )}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-900 truncate">
+                      <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
                         {uploadedFile.file.name}
                       </p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>
                         {(uploadedFile.file.size / 1024 / 1024).toFixed(2)} MB
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => removeFile(index)}
-                      className="text-slate-400 hover:text-slate-600"
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}
                       data-testid={`create-lesson-file-remove-${index}`}
                     >
-                      <X className="w-5 h-5" />
+                      <X className="w-4 h-4" />
                     </button>
                   </div>
                 ))}
@@ -372,16 +410,21 @@ export default function CreateLessonPage() {
           </div>
 
           {errors.form && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700" data-testid="create-lesson-form-error">
+            <div
+              className="p-4 rounded-lg text-sm"
+              style={{ background: 'oklch(0.95 0.04 25)', color: 'oklch(0.45 0.18 25)', border: '1px solid oklch(0.87 0.08 25)' }}
+              data-testid="create-lesson-form-error"
+            >
               {errors.form}
             </div>
           )}
 
-          <div className="flex space-x-4">
+          <div className="flex gap-3 mt-2">
             <button
               type="button"
               onClick={handleCancel}
-              className="flex-1 px-6 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+              className="flex-1 px-5 py-2.5 rounded-lg text-sm font-medium"
+              style={{ border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-primary)', cursor: 'pointer', fontFamily: 'inherit', boxShadow: 'var(--shadow-sm)' }}
               data-testid="create-lesson-cancel-button"
             >
               Cancel
@@ -389,31 +432,35 @@ export default function CreateLessonPage() {
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-6 py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors disabled:bg-slate-400 disabled:cursor-not-allowed"
+              className="flex-1 px-5 py-2.5 rounded-lg text-sm font-medium text-white"
+              style={{ background: 'var(--accent)', border: 'none', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, fontFamily: 'inherit' }}
               data-testid="create-lesson-save-button"
             >
-              {loading ? 'Creating...' : 'Create Lesson'}
+              {loading ? 'Creating…' : 'Create Lesson'}
             </button>
           </div>
         </form>
-      </main>
+        </div>
+      </div>
 
       {showCancelDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" data-testid="create-lesson-cancel-dialog">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">Discard changes?</h3>
-            <p className="text-slate-600 mb-6">You have unsaved changes. Are you sure you want to leave?</p>
-            <div className="flex space-x-3">
+        <div className="fixed inset-0 flex items-center justify-center p-4 z-50" style={{ background: 'rgba(0,0,0,0.5)' }} data-testid="create-lesson-cancel-dialog">
+          <div className="w-full max-w-[400px] p-6 rounded-[var(--radius-lg)]" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+            <h3 className="text-base font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Discard changes?</h3>
+            <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>You have unsaved changes. Are you sure you want to leave?</p>
+            <div className="flex gap-3">
               <button
                 onClick={() => setShowCancelDialog(false)}
-                className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+                className="flex-1 px-4 py-2 rounded-lg text-sm font-medium"
+                style={{ border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-primary)', cursor: 'pointer', fontFamily: 'inherit' }}
                 data-testid="create-lesson-cancel-dialog-cancel"
               >
                 Cancel
               </button>
               <button
                 onClick={() => navigate('/library')}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                className="flex-1 px-4 py-2 rounded-lg text-sm font-medium text-white"
+                style={{ background: 'oklch(0.58 0.18 25)', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
                 data-testid="create-lesson-cancel-dialog-confirm"
               >
                 Confirm

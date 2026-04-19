@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { ArrowLeft, Settings } from 'lucide-react';
+import { ArrowLeft, Settings, LogOut } from 'lucide-react';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
-  const { isAdmin, loading } = useAuth();
+  const { user, isAdmin, loading, signOut } = useAuth();
   const [qaEnabled, setQaEnabled] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -40,66 +40,144 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center h-16 space-x-3">
-            <button
-              onClick={() => navigate('/library')}
-              className="flex items-center space-x-2 text-slate-700 hover:text-slate-900"
-              data-testid="settings-back-button"
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ background: 'var(--bg)' }}>
+      {/* Top bar */}
+      <div
+        className="px-7 py-3.5 flex items-center shrink-0"
+        style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border-light)' }}
+      >
+        <button
+          onClick={() => navigate('/library')}
+          className="flex items-center gap-1.5 text-sm font-medium"
+          style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+          data-testid="settings-back-button"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          Back to Library
+        </button>
+      </div>
+
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto px-7 py-9 flex justify-center">
+        <div className="w-full max-w-[560px]">
+          <div className="flex items-center gap-2.5 mb-7">
+            <Settings className="w-5 h-5" style={{ color: 'var(--text-primary)' }} />
+            <h1
+              className="text-2xl font-bold tracking-tight"
+              style={{ color: 'var(--text-primary)' }}
+              data-testid="settings-page-title"
             >
-              <ArrowLeft className="w-5 h-5" />
-              <span>Back to Library</span>
-            </button>
+              Settings
+            </h1>
           </div>
-        </div>
-      </header>
 
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center space-x-3 mb-8">
-          <Settings className="w-6 h-6 text-slate-700" />
-          <h1 className="text-2xl font-bold text-slate-900" data-testid="settings-page-title">
-            Settings
-          </h1>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">Features</h2>
-
-          <div className="flex items-center justify-between py-4 border-b border-slate-100 last:border-0">
-            <div>
-              <label
-                htmlFor="qa-toggle"
-                className="text-sm font-medium text-slate-900 cursor-pointer"
-                data-testid="settings-qa-toggle-label"
-              >
-                Lesson Q&A
-              </label>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Allow users to ask questions about lesson content using AI
-              </p>
+          {/* Features card */}
+          <div
+            className="rounded-[var(--radius-lg)] overflow-hidden mb-4"
+            style={{ background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}
+          >
+            <div className="px-[22px] py-4" style={{ background: 'var(--surface2)', borderBottom: '1px solid var(--border-light)' }}>
+              <span className="text-xs font-semibold uppercase" style={{ letterSpacing: '0.06em', color: 'var(--text-muted)' }}>
+                Features
+              </span>
             </div>
-            <button
-              id="qa-toggle"
-              role="switch"
-              aria-checked={qaEnabled}
-              onClick={handleToggle}
-              disabled={saving}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 disabled:opacity-50 ${
-                qaEnabled ? 'bg-slate-900' : 'bg-slate-300'
-              }`}
-              data-testid="settings-qa-toggle"
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  qaEnabled ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
+            <div className="px-[22px] py-0">
+              <div className="flex items-center justify-between gap-5 py-4">
+                <div>
+                  <label
+                    htmlFor="qa-toggle"
+                    className="text-sm font-medium cursor-pointer"
+                    style={{ color: 'var(--text-primary)' }}
+                    data-testid="settings-qa-toggle-label"
+                  >
+                    Lesson Q&amp;A
+                  </label>
+                  <p className="text-[13px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                    Allow users to ask questions about lesson content using AI
+                  </p>
+                </div>
+                <button
+                  id="qa-toggle"
+                  role="switch"
+                  aria-checked={qaEnabled}
+                  onClick={handleToggle}
+                  disabled={saving}
+                  className="relative inline-flex items-center rounded-full shrink-0 focus:outline-none disabled:opacity-50"
+                  style={{
+                    width: 42, height: 24,
+                    background: qaEnabled ? 'var(--accent)' : 'var(--border)',
+                    border: 'none',
+                    cursor: saving ? 'not-allowed' : 'pointer',
+                    transition: 'background 0.15s',
+                  }}
+                  data-testid="settings-qa-toggle"
+                >
+                  <span
+                    className="inline-block rounded-full bg-white"
+                    style={{
+                      width: 18, height: 18,
+                      position: 'absolute', top: 3,
+                      left: qaEnabled ? 21 : 3,
+                      transition: 'left 0.15s',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+                    }}
+                  />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Account card */}
+          <div
+            className="rounded-[var(--radius-lg)] overflow-hidden"
+            style={{ background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}
+          >
+            <div className="px-[22px] py-4" style={{ background: 'var(--surface2)', borderBottom: '1px solid var(--border-light)' }}>
+              <span className="text-xs font-semibold uppercase" style={{ letterSpacing: '0.06em', color: 'var(--text-muted)' }}>
+                Account
+              </span>
+            </div>
+            <div className="px-[22px] py-4">
+              <div className="flex items-center gap-3.5 mb-4">
+                <div
+                  className="flex items-center justify-center rounded-full shrink-0"
+                  style={{
+                    width: 44, height: 44,
+                    background: 'linear-gradient(135deg, var(--accent) 0%, var(--teal) 100%)',
+                  }}
+                >
+                  <span className="text-white font-bold text-base">
+                    {user?.email?.slice(0, 2).toUpperCase() ?? '??'}
+                  </span>
+                </div>
+                <div>
+                  <div className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    {user?.email?.split('@')[0] ?? ''}
+                  </div>
+                  <div className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
+                    {user?.email ?? ''}
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={async () => { await signOut(); navigate('/login'); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium"
+                style={{
+                  background: 'var(--red-light)',
+                  color: 'var(--red)',
+                  border: '1px solid transparent',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+                data-testid="settings-sign-out-button"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                Sign out
+              </button>
+            </div>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

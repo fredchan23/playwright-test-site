@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { UserPlus } from 'lucide-react';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -21,7 +20,6 @@ export default function RegisterPage() {
     const hasNumber = /[0-9]/.test(password);
     const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
     const isLongEnough = password.length >= 8;
-
     return hasUpperCase && hasNumber && hasSpecialChar && isLongEnough;
   };
 
@@ -38,7 +36,8 @@ export default function RegisterPage() {
     if (!password) {
       newErrors.password = 'Password is required';
     } else if (!validatePassword(password)) {
-      newErrors.password = 'Password must be at least 8 characters with 1 uppercase, 1 number, and 1 special character';
+      newErrors.password =
+        'Password must be at least 8 characters with 1 uppercase, 1 number, and 1 special character';
     }
 
     setErrors(newErrors);
@@ -60,90 +59,168 @@ export default function RegisterPage() {
     }
   };
 
+  const inputStyle = (hasError: boolean) => ({
+    border: `1px solid ${hasError ? 'oklch(0.58 0.18 25)' : 'var(--border)'}`,
+    borderRadius: 8,
+    padding: '10px 12px',
+    fontSize: 14,
+    color: 'var(--text-primary)',
+    background: 'var(--surface)',
+    outline: 'none',
+    height: 40,
+    fontFamily: 'inherit',
+    width: '100%',
+  });
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          <div className="flex items-center justify-center mb-6">
-            <UserPlus className="w-10 h-10 text-slate-700" />
+    <div
+      className="min-h-screen flex items-center justify-center p-4 relative"
+      style={{ background: 'var(--bg)' }}
+    >
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          pointerEvents: 'none',
+          backgroundImage:
+            'radial-gradient(circle at 70% 20%, oklch(0.94 0.04 268 / 0.4) 0%, transparent 50%), radial-gradient(circle at 30% 80%, oklch(0.93 0.04 178 / 0.3) 0%, transparent 50%)',
+        }}
+      />
+
+      <div
+        className="w-full max-w-[400px] relative z-10"
+        style={{
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-lg)',
+          boxShadow: 'var(--shadow-lg)',
+          padding: '40px 36px',
+        }}
+      >
+        <div className="text-center mb-7">
+          <div
+            className="w-11 h-11 rounded-xl flex items-center justify-center mx-auto mb-4"
+            style={{ background: 'var(--text-primary)' }}
+          >
+            <span className="text-white font-bold text-base tracking-tight">SN</span>
           </div>
-          <h1 className="text-2xl font-bold text-center text-slate-900 mb-2">
-            Create Account
+          <h1
+            className="text-[22px] font-bold tracking-tight mb-1.5"
+            style={{ color: 'var(--text-primary)' }}
+          >
+            Create account
           </h1>
-          <p className="text-center text-slate-600 mb-6">
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
             Start learning Playwright automation
           </p>
-
-          <form onSubmit={handleSubmit} data-testid="registration-form">
-            <div className="mb-4">
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent ${
-                  errors.email ? 'border-red-500' : 'border-slate-300'
-                }`}
-                placeholder="you@example.com"
-                data-testid="registration-email-input"
-                aria-label="Email address"
-              />
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-600" data-testid="registration-email-error">
-                  {errors.email}
-                </p>
-              )}
-            </div>
-
-            <div className="mb-6">
-              <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-2">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent ${
-                  errors.password ? 'border-red-500' : 'border-slate-300'
-                }`}
-                placeholder="••••••••"
-                data-testid="registration-password-input"
-                aria-label="Password"
-              />
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-600" data-testid="registration-password-error">
-                  {errors.password}
-                </p>
-              )}
-            </div>
-
-            {errors.form && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm" data-testid="registration-form-error">
-                {errors.form}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-slate-900 text-white py-2 px-4 rounded-lg hover:bg-slate-800 transition-colors disabled:bg-slate-400 disabled:cursor-not-allowed"
-              data-testid="registration-submit-button"
-            >
-              {loading ? 'Creating account...' : 'Create Account'}
-            </button>
-          </form>
-
-          <p className="mt-6 text-center text-sm text-slate-600">
-            Already have an account?{' '}
-            <Link to="/login" className="text-slate-900 font-medium hover:underline" data-testid="registration-login-link">
-              Sign in
-            </Link>
-          </p>
         </div>
+
+        <form onSubmit={handleSubmit} data-testid="registration-form" className="flex flex-col gap-3.5">
+          <div className="flex flex-col gap-1.5">
+            <label
+              htmlFor="email"
+              className="text-[13px] font-medium"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              style={inputStyle(!!errors.email)}
+              data-testid="registration-email-input"
+              aria-label="Email address"
+            />
+            {errors.email && (
+              <p
+                className="text-xs"
+                style={{ color: 'oklch(0.45 0.18 25)' }}
+                data-testid="registration-email-error"
+              >
+                {errors.email}
+              </p>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label
+              htmlFor="password"
+              className="text-[13px] font-medium"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              style={inputStyle(!!errors.password)}
+              data-testid="registration-password-input"
+              aria-label="Password"
+            />
+            {errors.password && (
+              <p
+                className="text-xs"
+                style={{ color: 'oklch(0.45 0.18 25)' }}
+                data-testid="registration-password-error"
+              >
+                {errors.password}
+              </p>
+            )}
+          </div>
+
+          {errors.form && (
+            <div
+              className="p-3 text-sm rounded-lg"
+              style={{
+                background: 'oklch(0.95 0.04 25)',
+                color: 'oklch(0.45 0.18 25)',
+                border: '1px solid oklch(0.87 0.08 25)',
+              }}
+              data-testid="registration-form-error"
+            >
+              {errors.form}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            data-testid="registration-submit-button"
+            style={{
+              background: 'var(--accent)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 8,
+              padding: '11px',
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: loading ? 'not-allowed' : 'pointer',
+              marginTop: 4,
+              fontFamily: 'inherit',
+              opacity: loading ? 0.7 : 1,
+              width: '100%',
+            }}
+          >
+            {loading ? 'Creating account…' : 'Create Account'}
+          </button>
+        </form>
+
+        <p className="text-center text-[13px] mt-5" style={{ color: 'var(--text-muted)' }}>
+          Already have an account?{' '}
+          <Link
+            to="/login"
+            style={{ color: 'var(--accent)', fontWeight: 500 }}
+            data-testid="registration-login-link"
+          >
+            Sign in
+          </Link>
+        </p>
       </div>
     </div>
   );

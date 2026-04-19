@@ -225,277 +225,313 @@ export default function EditLessonPage() {
 
   if (initialLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center" style={{ background: 'var(--bg)' }}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-900 mx-auto"></div>
-          <p className="mt-4 text-slate-600">Loading lesson...</p>
+          <div
+            className="w-10 h-10 rounded-full border-2 border-transparent animate-spin mx-auto mb-4"
+            style={{ borderTopColor: 'var(--accent)', borderRightColor: 'var(--accent)' }}
+          />
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Loading lesson…</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center h-16">
-            <button
-              onClick={handleCancel}
-              className="flex items-center space-x-2 text-slate-700 hover:text-slate-900"
-              data-testid="edit-lesson-back-button"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              <span>Back</span>
-            </button>
-          </div>
-        </div>
-      </header>
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ background: 'var(--bg)' }}>
+      {/* Top bar */}
+      <div
+        className="px-7 py-3.5 flex items-center shrink-0"
+        style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border-light)' }}
+      >
+        <button
+          onClick={handleCancel}
+          className="flex items-center gap-1.5 text-sm font-medium"
+          style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+          data-testid="edit-lesson-back-button"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          Back
+        </button>
+      </div>
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold text-slate-900 mb-8">Edit Lesson</h1>
+      <div className="flex-1 overflow-y-auto px-7 py-9 flex justify-center">
+        <div className="w-full max-w-[600px]">
+          <h1 className="text-2xl font-bold tracking-tight mb-7" style={{ color: 'var(--text-primary)' }}>
+            Edit Lesson
+          </h1>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm border border-slate-200 p-8" data-testid="edit-lesson-form">
-          <div className="mb-6">
-            <label htmlFor="title" className="block text-sm font-medium text-slate-700 mb-2">
-              Title *
-            </label>
-            <input
-              id="title"
-              type="text"
-              value={title}
-              onChange={(e) => { setTitle(e.target.value); setHasChanges(true); }}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent ${
-                errors.title ? 'border-red-500' : 'border-slate-300'
-              }`}
-              placeholder="Enter lesson title"
-              data-testid="edit-lesson-title-input"
-              aria-label="Lesson title"
-            />
-            {errors.title && (
-              <p className="mt-1 text-sm text-red-600" data-testid="edit-lesson-title-error">
-                {errors.title}
-              </p>
-            )}
-          </div>
-
-          <div className="mb-6">
-            <label htmlFor="description" className="block text-sm font-medium text-slate-700 mb-2">
-              Description *
-            </label>
-            <textarea
-              id="description"
-              value={description}
-              onChange={(e) => { setDescription(e.target.value); setHasChanges(true); }}
-              rows={6}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent ${
-                errors.description ? 'border-red-500' : 'border-slate-300'
-              }`}
-              placeholder="Enter lesson description"
-              data-testid="edit-lesson-description-input"
-              aria-label="Lesson description"
-            />
-            {errors.description && (
-              <p className="mt-1 text-sm text-red-600" data-testid="edit-lesson-description-error">
-                {errors.description}
-              </p>
-            )}
-          </div>
-
-          <div className="mb-6">
-            <label htmlFor="genre" className="block text-sm font-medium text-slate-700 mb-2">
-              Genre
-            </label>
-            <select
-              id="genre"
-              value={genreId}
-              onChange={(e) => { setGenreId(e.target.value); setHasChanges(true); }}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent"
-              data-testid="edit-lesson-genre-dropdown"
-              aria-label="Select genre"
-            >
-              <option value="">Select a genre</option>
-              {genres.map(genre => (
-                <option key={genre.id} value={genre.id}>
-                  {genre.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="mb-6">
-            <label htmlFor="tags" className="block text-sm font-medium text-slate-700 mb-2">
-              Tags
-            </label>
-            <input
-              id="tags"
-              type="text"
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              onKeyDown={handleTagInput}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent"
-              placeholder="Enter tags separated by commas"
-              data-testid="edit-lesson-tags-input"
-              aria-label="Lesson tags"
-            />
-            {tags.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {tags.map(tag => (
-                  <span
-                    key={tag}
-                    className="flex items-center space-x-1 px-3 py-1 bg-slate-100 text-slate-700 rounded-lg"
-                    data-testid={`edit-lesson-tag-chip-${tag}`}
-                  >
-                    <span>{tag}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeTag(tag)}
-                      className="text-slate-500 hover:text-slate-700"
-                      data-testid={`edit-lesson-tag-remove-${tag}`}
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="mb-8">
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Files
-            </label>
-
-            {existingFiles.length > 0 && (
-              <div className="mb-4 space-y-2">
-                <h4 className="text-sm font-medium text-slate-600">Existing Files</h4>
-                {existingFiles.map(file => (
-                  <div
-                    key={file.id}
-                    className="flex items-center space-x-3 p-3 bg-slate-50 rounded-lg"
-                    data-testid={`edit-lesson-existing-file-${file.id}`}
-                  >
-                    <FileText className="w-8 h-8 text-slate-400" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-900 truncate">
-                        {file.filename}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        {(file.file_size / 1024 / 1024).toFixed(2)} MB
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeExistingFile(file.id)}
-                      className="text-slate-400 hover:text-slate-600"
-                      data-testid={`edit-lesson-existing-file-remove-${file.id}`}
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center hover:border-slate-400 transition-colors">
-              <Upload className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-              <p className="text-slate-600 mb-2">Add more files</p>
-              <label className="inline-block px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 cursor-pointer transition-colors">
-                <span data-testid="edit-lesson-choose-files-button">Choose Files</span>
-                <input
-                  type="file"
-                  multiple
-                  accept=".pdf,.jpg,.jpeg,.png,.gif"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                  data-testid="edit-lesson-file-input"
-                />
+          <form
+            onSubmit={handleSubmit}
+            className="rounded-[var(--radius-lg)] p-7 flex flex-col gap-5"
+            style={{ background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}
+            data-testid="edit-lesson-form"
+          >
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="title" className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+                Title *
               </label>
+              <input
+                id="title"
+                type="text"
+                value={title}
+                onChange={(e) => { setTitle(e.target.value); setHasChanges(true); }}
+                placeholder="Enter lesson title"
+                style={{
+                  border: `1px solid ${errors.title ? 'oklch(0.58 0.18 25)' : 'var(--border)'}`,
+                  borderRadius: 8, padding: '10px 12px', fontSize: 14,
+                  color: 'var(--text-primary)', background: 'var(--surface)',
+                  outline: 'none', height: 40, fontFamily: 'inherit', width: '100%',
+                }}
+                data-testid="edit-lesson-title-input"
+                aria-label="Lesson title"
+              />
+              {errors.title && (
+                <p className="text-xs" style={{ color: 'oklch(0.45 0.18 25)' }} data-testid="edit-lesson-title-error">
+                  {errors.title}
+                </p>
+              )}
             </div>
-            {errors.files && (
-              <p className="mt-2 text-sm text-red-600" data-testid="edit-lesson-file-error">
-                {errors.files}
-              </p>
-            )}
 
-            {newFiles.length > 0 && (
-              <div className="mt-4 space-y-3">
-                <h4 className="text-sm font-medium text-slate-600">New Files</h4>
-                {newFiles.map((uploadedFile, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg"
-                    data-testid={`edit-lesson-new-file-${index}`}
-                  >
-                    {uploadedFile.preview ? (
-                      <img src={uploadedFile.preview} alt="" className="w-12 h-12 object-cover rounded" />
-                    ) : (
-                      <FileText className="w-12 h-12 text-slate-400" />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-900 truncate">
-                        {uploadedFile.file.name}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        {(uploadedFile.file.size / 1024 / 1024).toFixed(2)} MB
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeNewFile(index)}
-                      className="text-slate-400 hover:text-slate-600"
-                      data-testid={`edit-lesson-new-file-remove-${index}`}
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="description" className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+                Description *
+              </label>
+              <textarea
+                id="description"
+                value={description}
+                onChange={(e) => { setDescription(e.target.value); setHasChanges(true); }}
+                rows={6}
+                placeholder="Enter lesson description"
+                style={{
+                  border: `1px solid ${errors.description ? 'oklch(0.58 0.18 25)' : 'var(--border)'}`,
+                  borderRadius: 8, padding: '10px 12px', fontSize: 14,
+                  color: 'var(--text-primary)', background: 'var(--surface)',
+                  outline: 'none', resize: 'vertical', lineHeight: 1.5, fontFamily: 'inherit', width: '100%',
+                }}
+                data-testid="edit-lesson-description-input"
+                aria-label="Lesson description"
+              />
+              {errors.description && (
+                <p className="text-xs" style={{ color: 'oklch(0.45 0.18 25)' }} data-testid="edit-lesson-description-error">
+                  {errors.description}
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="genre" className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+                Genre
+              </label>
+              <select
+                id="genre"
+                value={genreId}
+                onChange={(e) => { setGenreId(e.target.value); setHasChanges(true); }}
+                style={{
+                  border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px',
+                  fontSize: 14, color: 'var(--text-primary)', background: 'var(--surface)',
+                  outline: 'none', height: 40, fontFamily: 'inherit', appearance: 'none', width: '100%',
+                }}
+                data-testid="edit-lesson-genre-dropdown"
+                aria-label="Select genre"
+              >
+                <option value="">Select a genre</option>
+                {genres.map(genre => (
+                  <option key={genre.id} value={genre.id}>
+                    {genre.name}
+                  </option>
                 ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="tags" className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+                Tags
+              </label>
+              <input
+                id="tags"
+                type="text"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={handleTagInput}
+                placeholder="Enter tags separated by commas"
+                style={{
+                  border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px',
+                  fontSize: 14, color: 'var(--text-primary)', background: 'var(--surface)',
+                  outline: 'none', height: 40, fontFamily: 'inherit', width: '100%',
+                }}
+                data-testid="edit-lesson-tags-input"
+                aria-label="Lesson tags"
+              />
+              {tags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {tags.map(tag => (
+                    <span
+                      key={tag}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs"
+                      style={{ background: 'var(--surface2)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+                      data-testid={`edit-lesson-tag-chip-${tag}`}
+                    >
+                      <span>{tag}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeTag(tag)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-muted)' }}
+                        data-testid={`edit-lesson-tag-remove-${tag}`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+                Files
+              </label>
+
+              {existingFiles.length > 0 && (
+                <div className="flex flex-col gap-1.5 mb-1">
+                  <p className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Existing Files</p>
+                  {existingFiles.map(file => (
+                    <div
+                      key={file.id}
+                      className="flex items-center gap-3 p-3 rounded-lg"
+                      style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}
+                      data-testid={`edit-lesson-existing-file-${file.id}`}
+                    >
+                      <FileText className="w-7 h-7 shrink-0" style={{ color: 'var(--text-muted)' }} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{file.filename}</p>
+                        <p className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>{(file.file_size / 1024 / 1024).toFixed(2)} MB</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeExistingFile(file.id)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}
+                        data-testid={`edit-lesson-existing-file-remove-${file.id}`}
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div
+                className="rounded-[var(--radius)] p-8 text-center"
+                style={{ border: '2px dashed var(--border)', background: 'var(--surface2)' }}
+              >
+                <Upload className="w-7 h-7 mx-auto mb-3" style={{ color: 'var(--text-muted)' }} />
+                <p className="text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>Add more files</p>
+                <label
+                  className="inline-block px-4 py-1.5 rounded-lg text-sm font-medium cursor-pointer"
+                  style={{ background: 'var(--surface)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
+                >
+                  <span data-testid="edit-lesson-choose-files-button">Choose Files</span>
+                  <input
+                    type="file"
+                    multiple
+                    accept=".pdf,.jpg,.jpeg,.png,.gif"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                    data-testid="edit-lesson-file-input"
+                  />
+                </label>
+              </div>
+              {errors.files && (
+                <p className="text-xs" style={{ color: 'oklch(0.45 0.18 25)' }} data-testid="edit-lesson-file-error">
+                  {errors.files}
+                </p>
+              )}
+
+              {newFiles.length > 0 && (
+                <div className="flex flex-col gap-1.5 mt-1">
+                  <p className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>New Files</p>
+                  {newFiles.map((uploadedFile, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-3 p-3 rounded-lg"
+                      style={{ background: 'var(--accent-light)', border: '1px solid var(--border)' }}
+                      data-testid={`edit-lesson-new-file-${index}`}
+                    >
+                      {uploadedFile.preview ? (
+                        <img src={uploadedFile.preview} alt="" className="w-10 h-10 object-cover rounded shrink-0" />
+                      ) : (
+                        <FileText className="w-10 h-10 shrink-0" style={{ color: 'var(--text-muted)' }} />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{uploadedFile.file.name}</p>
+                        <p className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>{(uploadedFile.file.size / 1024 / 1024).toFixed(2)} MB</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeNewFile(index)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}
+                        data-testid={`edit-lesson-new-file-remove-${index}`}
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {errors.form && (
+              <div
+                className="p-4 rounded-lg text-sm"
+                style={{ background: 'oklch(0.95 0.04 25)', color: 'oklch(0.45 0.18 25)', border: '1px solid oklch(0.87 0.08 25)' }}
+                data-testid="edit-lesson-form-error"
+              >
+                {errors.form}
               </div>
             )}
-          </div>
 
-          {errors.form && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700" data-testid="edit-lesson-form-error">
-              {errors.form}
+            <div className="flex gap-3 mt-2">
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="flex-1 px-5 py-2.5 rounded-lg text-sm font-medium"
+                style={{ border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-primary)', cursor: 'pointer', fontFamily: 'inherit', boxShadow: 'var(--shadow-sm)' }}
+                data-testid="edit-lesson-cancel-button"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 px-5 py-2.5 rounded-lg text-sm font-medium text-white"
+                style={{ background: 'var(--accent)', border: 'none', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, fontFamily: 'inherit' }}
+                data-testid="edit-lesson-save-button"
+              >
+                {loading ? 'Saving…' : 'Save Changes'}
+              </button>
             </div>
-          )}
-
-          <div className="flex space-x-4">
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="flex-1 px-6 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
-              data-testid="edit-lesson-cancel-button"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 px-6 py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors disabled:bg-slate-400 disabled:cursor-not-allowed"
-              data-testid="edit-lesson-save-button"
-            >
-              {loading ? 'Saving...' : 'Save Changes'}
-            </button>
-          </div>
-        </form>
-      </main>
+          </form>
+        </div>
+      </div>
 
       {showCancelDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" data-testid="edit-lesson-cancel-dialog">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">Discard changes?</h3>
-            <p className="text-slate-600 mb-6">You have unsaved changes. Are you sure you want to leave?</p>
-            <div className="flex space-x-3">
+        <div className="fixed inset-0 flex items-center justify-center p-4 z-50" style={{ background: 'rgba(0,0,0,0.5)' }} data-testid="edit-lesson-cancel-dialog">
+          <div className="w-full max-w-[400px] p-6 rounded-[var(--radius-lg)]" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+            <h3 className="text-base font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Discard changes?</h3>
+            <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>You have unsaved changes. Are you sure you want to leave?</p>
+            <div className="flex gap-3">
               <button
                 onClick={() => setShowCancelDialog(false)}
-                className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+                className="flex-1 px-4 py-2 rounded-lg text-sm font-medium"
+                style={{ border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-primary)', cursor: 'pointer', fontFamily: 'inherit' }}
                 data-testid="edit-lesson-cancel-dialog-cancel"
               >
                 Cancel
               </button>
               <button
                 onClick={() => navigate(`/lessons/${id}`)}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                className="flex-1 px-4 py-2 rounded-lg text-sm font-medium text-white"
+                style={{ background: 'oklch(0.58 0.18 25)', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
                 data-testid="edit-lesson-cancel-dialog-confirm"
               >
                 Confirm

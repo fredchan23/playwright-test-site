@@ -175,10 +175,50 @@ The PDF.js worker is emitted by Vite as a `.mjs` file (`pdf.worker.min-*.mjs`). 
 
 The Docker image tag in `cloudbuild.yaml` (`mcr.microsoft.com/playwright:vX.Y.Z-noble`) **must exactly match** the `@playwright/test` version in `package.json`. `npm ci` installs the version from `package-lock.json`; if the image ships a different Chromium build, Playwright refuses to launch with `Executable doesn't exist`. When bumping `@playwright/test`, update the image tag in lockstep.
 
+### LibraryPage UI Redesign (2026-04-19)
+
+**Source:** `docs/studynode/project/StudyNode.html` — implemented into `src/pages/LibraryPage.tsx`.
+
+**LessonCard changes:**
+- 4px genre color bar across the top (requires `overflow: hidden` on the card wrapper)
+- Tinted card background per genre via `TINT_BG` map; reverts to `var(--surface)` on hover
+- Layout reordered: genre badge + shared indicator → title → description → tags → footer
+- Hover: border shifts to vivid genre `BAR_COLORS` value + `translateY(-2px)` lift + shadow-md
+- Hover state managed via `useState` (not inline `onMouseEnter` style mutation) because multiple properties change
+
+**LessonListItem changes:**
+- 8px genre-colored dot as leftmost element
+- Hover: left 3px border appears in genre `BAR_COLORS` (not `var(--accent)`)
+- Genre tag moved to dedicated right column; date fixed 80px; file count icon+number fixed 44px
+- Hover state managed via `useState` for same reason as LessonCard
+
+**Section headers:**
+- "My Lessons" count rendered as separate monospace `<span>` baseline-aligned next to heading
+- "Shared with Me" section gets a hairline divider + "From others" accent pill badge
+
+**New constants added:** `BAR_COLORS` (vivid per-genre bar/dot/border colors) and `TINT_BG` (very subtle per-genre card tint backgrounds).
+
+### ProtectedRoute Loading State — Old Tailwind Classes (2026-04-19 — Fixed)
+
+**Root cause:** `ProtectedRoute` still used old `bg-slate-50 / border-slate-900 / text-slate-600` Tailwind classes. Users saw two visually distinct loading screens in sequence: the auth-check spinner (gray, no sidebar) followed by the page's own styled spinner. Looked like a bug.
+
+**Fix:** Updated `ProtectedRoute` to use `var(--bg)`, `var(--accent)`, `var(--text-muted)` CSS vars and the same spinner pattern used in LibraryPage's loading state.
+
+**Rule:** Any component that shows a loading state should use the CSS variable design system, not Tailwind color classes. Tailwind layout utilities (`flex`, `items-center`) are fine to keep.
+
+### QA Panel — Double "..." When Asking (2026-04-19 — Fixed)
+
+**Root cause:** `handleSubmit` in `LessonQAPanel` did two things when a question was sent: (1) appended a `{ role: 'assistant', content: '…' }` placeholder to the message list, and (2) set `asking = true` which rendered bouncing dots below. Both showed simultaneously — users saw a text "…" bubble AND animated dots.
+
+**Fix:** Removed the `'…'` placeholder message entirely. The bouncing dots alone communicate the pending state. Also removed the `slice(0, -1)` calls in the success and error paths that were previously cleaning up that placeholder (they would have incorrectly removed the user's own message).
+
+**Rule:** Don't use both an inline placeholder message and a dedicated loading indicator for the same state. Pick one.
+
 ### Outstanding (next session)
 
 - **All 45 local tests now passing** as of 2026-04-18.
 - **Cloud Build step 4 fix committed** — needs a triggered build to confirm secrets (`TEST_*`, `SUPABASE_SERVICE_ROLE_KEY`) are provisioned in Secret Manager under the expected names.
+- **Library page E2E tests** — `LessonCard` and `LessonListItem` hover assertions (border color, transform) may need updating to reflect new genre-specific `BAR_COLORS` values instead of `var(--accent)`. Verify before next test run.
 
 ## Project Docs (git-ignored, local only)
 All specification and planning documents live in `docs/` and `tasks/` — both are git-ignored.
