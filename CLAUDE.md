@@ -243,6 +243,20 @@ Added full mobile support (breakpoint `< 640px`) across all protected pages. Ref
 | `lesson-detail-tab-lesson` | LessonDetailPage.tsx |
 | `lesson-detail-tab-qa` | LessonDetailPage.tsx |
 
+### Mobile QA Panel Scroll Trap (2026-04-20 — Fixed)
+
+**Root cause:** `LessonQAPanel` with `columnMode={false}` (mobile) rendered as a card with `overflow-hidden` on the root and no height constraint on the inner `div.flex.flex-col.gap-4.p-5` wrapper. The messages area had `flex: 1` and `overflow-y-auto` but no constrained parent, so it expanded to full content height — `overflow-y-auto` never activated. `scrollIntoView` on `bottomRef` scrolled the page/tab container instead. The tab row's `overflow-hidden` then clipped the top of the content, trapping the user at the bottom with no way to scroll up.
+
+**Fix:** `LessonDetailPage` now passes `columnMode={true}` unconditionally. On mobile the panel fills the entire tab, so the column layout (`flex flex-col h-full`) is appropriate — scroll is properly contained within the messages area.
+
+**Rule:** Any scrollable list inside a flex tab must have its height constrained by the flex chain. `overflow-y-auto` only activates when all ancestors have explicit or flex-derived height constraints. `overflow-hidden` on a parent clips content without enabling scroll.
+
+### Edit Button Wrong Icon (2026-04-20 — Fixed)
+
+**Root cause:** `CreditCard` from lucide-react was incorrectly aliased as `Edit` in `LessonDetailPage.tsx`, showing a credit-card rectangle instead of the pencil-on-square icon from the StudyNode.html reference design.
+
+**Fix:** Replaced `CreditCard as Edit` with `SquarePen as Edit`.
+
 ### Outstanding (next session)
 
 - **All 45 local tests now passing** as of 2026-04-18.
