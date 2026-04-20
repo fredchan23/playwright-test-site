@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import * as pdfjsLib from 'pdfjs-dist';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { ArrowLeft, CreditCard as Edit, Trash2, Share2, FileText, Image as ImageIcon, Download, X, BookOpen, Sparkles } from 'lucide-react';
+import { ArrowLeft, SquarePen as Edit, Trash2, Share2, FileText, Image as ImageIcon, Download, X, BookOpen, Sparkles } from 'lucide-react';
 import LessonQAPanel from '../components/LessonQAPanel';
 import useIsMobile from '../hooks/useIsMobile';
 
@@ -482,7 +482,7 @@ export default function LessonDetailPage() {
               : { width: 360, flexShrink: 0, borderLeft: '1px solid var(--border)', background: 'var(--surface)' }
             }
           >
-            <LessonQAPanel lessonId={lesson.id} columnMode={!isMobile} />
+            <LessonQAPanel lessonId={lesson.id} columnMode={true} />
           </div>
         )}
       </div>
