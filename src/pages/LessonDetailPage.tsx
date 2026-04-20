@@ -3,8 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import * as pdfjsLib from 'pdfjs-dist';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { ArrowLeft, CreditCard as Edit, Trash2, Share2, FileText, Image as ImageIcon, Download, X } from 'lucide-react';
+import { ArrowLeft, CreditCard as Edit, Trash2, Share2, FileText, Image as ImageIcon, Download, X, BookOpen, Sparkles } from 'lucide-react';
 import LessonQAPanel from '../components/LessonQAPanel';
+import useIsMobile from '../hooks/useIsMobile';
 
 const GENRE_COLORS: Record<string, { bg: string; text: string }> = {
   Arts:        { bg: 'oklch(0.93 0.05 340)', text: 'oklch(0.45 0.15 340)' },
@@ -47,6 +48,8 @@ export default function LessonDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
+  const [mobileTab, setMobileTab] = useState<'lesson' | 'qa'>('lesson');
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [files, setFiles] = useState<LessonFile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -234,8 +237,12 @@ export default function LessonDetailPage() {
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ background: 'var(--bg)' }}>
       {/* Top bar */}
       <div
-        className="px-7 py-3.5 flex items-center justify-between shrink-0"
-        style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border-light)' }}
+        className="flex items-center justify-between shrink-0"
+        style={{
+          padding: isMobile ? '10px 14px' : '14px 28px',
+          background: 'var(--surface)',
+          borderBottom: '1px solid var(--border-light)',
+        }}
       >
         <button
           onClick={() => navigate('/library')}
@@ -248,41 +255,96 @@ export default function LessonDetailPage() {
         </button>
 
         {isOwner && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <button
               onClick={() => setShowShareDialog(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium"
-              style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+              className="flex items-center gap-1.5 rounded-lg text-sm font-medium"
+              style={{
+                padding: isMobile ? '6px' : '6px 12px',
+                color: 'var(--text-secondary)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
               data-testid="lesson-detail-share-button"
             >
               <Share2 className="w-3.5 h-3.5" />
-              Share
+              {!isMobile && 'Share'}
             </button>
             <button
               onClick={() => navigate(`/lessons/${id}/edit`)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium"
-              style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+              className="flex items-center gap-1.5 rounded-lg text-sm font-medium"
+              style={{
+                padding: isMobile ? '6px' : '6px 12px',
+                color: 'var(--text-secondary)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
               data-testid="lesson-detail-edit-button"
             >
               <Edit className="w-3.5 h-3.5" />
-              Edit
+              {!isMobile && 'Edit'}
             </button>
             <button
               onClick={() => setShowDeleteDialog(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium"
-              style={{ background: 'oklch(0.95 0.04 25)', color: 'oklch(0.45 0.18 25)', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+              className="flex items-center gap-1.5 rounded-lg text-sm font-medium"
+              style={{
+                padding: isMobile ? '6px' : '6px 12px',
+                background: isMobile ? 'none' : 'oklch(0.95 0.04 25)',
+                color: 'oklch(0.45 0.18 25)',
+                border: 'none',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
               data-testid="lesson-detail-delete-button"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              Delete
+              {!isMobile && 'Delete'}
             </button>
           </div>
         )}
       </div>
 
+      {/* Mobile tab bar */}
+      {isMobile && (
+        <div
+          className="flex shrink-0"
+          style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border-light)' }}
+          data-testid="lesson-detail-tab-bar"
+        >
+          {([
+            { id: 'lesson', label: 'Lesson', Icon: BookOpen, testid: 'lesson-detail-tab-lesson' },
+            { id: 'qa',     label: 'Ask AI',  Icon: Sparkles, testid: 'lesson-detail-tab-qa' },
+          ] as const).map(({ id: tabId, label, Icon, testid }) => (
+            <button
+              key={tabId}
+              onClick={() => setMobileTab(tabId)}
+              className="flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-medium"
+              style={{
+                border: 'none',
+                background: 'none',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                color: mobileTab === tabId ? 'var(--accent)' : 'var(--text-muted)',
+                fontWeight: mobileTab === tabId ? 600 : 400,
+                borderBottom: mobileTab === tabId ? '2px solid var(--accent)' : '2px solid transparent',
+              }}
+              data-testid={testid}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="flex-1 flex min-h-0 overflow-hidden">
         {/* Main content */}
-        <div className="flex-1 overflow-y-auto px-9 py-8">
+        {(!isMobile || mobileTab === 'lesson') && (
+        <div className="flex-1 overflow-y-auto" style={{ padding: isMobile ? '24px 18px' : '32px 36px' }}>
           <div className="max-w-[680px]">
             {lesson.genre && (
               <span
@@ -409,14 +471,20 @@ export default function LessonDetailPage() {
 
           </div>
         </div>
+        )}
 
-        {/* Q&A right column */}
-        <div
-          className="flex flex-col shrink-0"
-          style={{ width: 360, borderLeft: '1px solid var(--border)', background: 'var(--surface)' }}
-        >
-          <LessonQAPanel lessonId={lesson.id} columnMode />
-        </div>
+        {/* Q&A panel — right column on desktop, full-width tab on mobile */}
+        {(!isMobile || mobileTab === 'qa') && (
+          <div
+            className="flex flex-col"
+            style={isMobile
+              ? { flex: 1, minHeight: 0, background: 'var(--surface)' }
+              : { width: 360, flexShrink: 0, borderLeft: '1px solid var(--border)', background: 'var(--surface)' }
+            }
+          >
+            <LessonQAPanel lessonId={lesson.id} columnMode={!isMobile} />
+          </div>
+        )}
       </div>
 
       {showDeleteDialog && (

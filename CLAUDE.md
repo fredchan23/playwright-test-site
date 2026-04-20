@@ -214,11 +214,41 @@ The Docker image tag in `cloudbuild.yaml` (`mcr.microsoft.com/playwright:vX.Y.Z-
 
 **Rule:** Don't use both an inline placeholder message and a dedicated loading indicator for the same state. Pick one.
 
+### Mobile Responsiveness — Implementation (2026-04-20)
+
+Added full mobile support (breakpoint `< 640px`) across all protected pages. Reference design: `docs/studynode/project/StudyNode.html`.
+
+**Architecture:**
+- `src/hooks/useIsMobile.ts` — shared hook; `useState(() => window.innerWidth < 640)` initialiser avoids flash; single resize listener per component.
+- `Layout.tsx` — owns `sidebarOpen` state; renders 52px mobile top bar (hamburger + SN badge + wordmark) above `{children}` only on mobile.
+- `Sidebar.tsx` — accepts `isMobile`, `open`, `onClose` props; on mobile renders as a `position: fixed` 270px drawer (`z-41`) with a separate overlay backdrop (`z-40`). Desktop renders as before — `sticky top-0`.
+
+**z-index stack:** sidebar overlay `z-40`, sidebar drawer `z-41`, modals/dialogs `z-50`. Dialogs always win.
+
+**LibraryPage top bar on mobile:** two-row layout — search full-width on row 1, icon-only Filters + New Lesson on row 2. Content padding reduced from `px-7 py-6` to `16px` on mobile.
+
+**LessonListItem on mobile:** fixed-width date / file-count / genre columns are hidden; genre tag, date, and file-count move inline into the text block to prevent horizontal overflow at 375px. `data-testid` values are preserved — the same testids appear in both mobile and desktop branches (only one branch renders at a time, so no DOM duplication).
+
+**LessonDetailPage on mobile:** tab bar (`lesson-detail-tab-bar`) switches between "Lesson" (`lesson-detail-tab-lesson`) and "Ask AI" (`lesson-detail-tab-qa`). Action buttons (Share, Edit, Delete) become icon-only. `LessonQAPanel` receives `columnMode={!isMobile}` — full-width on mobile, 360px column on desktop.
+
+**New testids:**
+
+| testid | Location |
+|--------|----------|
+| `mobile-top-bar` | Layout.tsx |
+| `mobile-menu-button` | Layout.tsx |
+| `mobile-sidebar-overlay` | Sidebar.tsx |
+| `mobile-sidebar-close-button` | Sidebar.tsx |
+| `lesson-detail-tab-bar` | LessonDetailPage.tsx |
+| `lesson-detail-tab-lesson` | LessonDetailPage.tsx |
+| `lesson-detail-tab-qa` | LessonDetailPage.tsx |
+
 ### Outstanding (next session)
 
 - **All 45 local tests now passing** as of 2026-04-18.
 - **Cloud Build step 4 fix committed** — needs a triggered build to confirm secrets (`TEST_*`, `SUPABASE_SERVICE_ROLE_KEY`) are provisioned in Secret Manager under the expected names.
 - **Library page E2E tests** — `LessonCard` and `LessonListItem` hover assertions (border color, transform) may need updating to reflect new genre-specific `BAR_COLORS` values instead of `var(--accent)`. Verify before next test run.
+- **Mobile E2E coverage** — no Playwright tests yet cover the mobile breakpoint flows (drawer open/close, tab switching, icon-only buttons). Consider adding viewport-specific tests when the regression suite is next extended.
 
 ## Project Docs (git-ignored, local only)
 All specification and planning documents live in `docs/` and `tasks/` — both are git-ignored.

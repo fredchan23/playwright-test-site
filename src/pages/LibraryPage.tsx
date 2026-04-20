@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Plus, Search, FileText, X, SlidersHorizontal, LayoutGrid, List, Share2, File } from 'lucide-react';
 import RangeSlider from '../components/RangeSlider';
+import useIsMobile from '../hooks/useIsMobile';
 
 interface Genre {
   id: string;
@@ -36,6 +37,7 @@ type ViewMode = 'card' | 'list';
 export default function LibraryPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [ownLessons, setOwnLessons] = useState<Lesson[]>([]);
   const [sharedLessons, setSharedLessons] = useState<Lesson[]>([]);
   const [genres, setGenres] = useState<Genre[]>([]);
@@ -259,10 +261,15 @@ export default function LibraryPage() {
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ background: 'var(--bg)' }}>
       {/* Top bar */}
       <div
-        className="px-7 py-5 flex items-center gap-3 shrink-0"
-        style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border-light)' }}
+        className="shrink-0 flex flex-col gap-2"
+        style={{
+          background: 'var(--surface)',
+          borderBottom: '1px solid var(--border-light)',
+          padding: isMobile ? '10px 14px' : '20px 28px 16px',
+        }}
       >
-        <div className="flex-1 relative">
+        {/* Row 1: search */}
+        <div className="relative">
           <Search
             className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5"
             style={{ color: 'var(--text-muted)' }}
@@ -299,49 +306,56 @@ export default function LibraryPage() {
           )}
         </div>
 
-        <button
-          onClick={() => setShowFilters((v) => !v)}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium"
-          style={{
-            background: showFilters ? 'var(--accent-light)' : 'var(--surface)',
-            color: showFilters ? 'var(--accent)' : 'var(--text-primary)',
-            border: '1px solid var(--border)',
-            boxShadow: 'var(--shadow-sm)',
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-          }}
-          data-testid="library-filters-toggle-button"
-        >
-          <SlidersHorizontal className="w-3.5 h-3.5" />
-          Filters
-          {activeFilterCount > 0 && (
-            <span
-              className="text-[11px] px-1.5 py-0.5 rounded-full text-white ml-0.5"
-              style={{ background: 'var(--accent)' }}
-            >
-              {activeFilterCount}
-            </span>
-          )}
-        </button>
+        {/* Row 2: Filters + New Lesson */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowFilters((v) => !v)}
+            className="flex items-center gap-1.5 rounded-lg text-sm font-medium"
+            style={{
+              padding: isMobile ? '7px 10px' : '7px 14px',
+              background: showFilters ? 'var(--accent-light)' : 'var(--surface)',
+              color: showFilters ? 'var(--accent)' : 'var(--text-primary)',
+              border: '1px solid var(--border)',
+              boxShadow: 'var(--shadow-sm)',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+            data-testid="library-filters-toggle-button"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            {!isMobile && 'Filters'}
+            {activeFilterCount > 0 && (
+              <span
+                className="text-[11px] px-1.5 py-0.5 rounded-full text-white"
+                style={{ background: 'var(--accent)' }}
+              >
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
 
-        <button
-          onClick={() => navigate('/lessons/create')}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium text-white"
-          style={{
-            background: 'var(--accent)',
-            border: 'none',
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-          }}
-          data-testid="library-create-lesson-button"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          New Lesson
-        </button>
+          <div className="flex-1" />
+
+          <button
+            onClick={() => navigate('/lessons/create')}
+            className="flex items-center gap-1.5 rounded-lg text-sm font-medium text-white"
+            style={{
+              padding: isMobile ? '7px 10px' : '7px 14px',
+              background: 'var(--accent)',
+              border: 'none',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+            data-testid="library-create-lesson-button"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            {!isMobile && 'New Lesson'}
+          </button>
+        </div>
       </div>
 
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto px-7 py-6">
+      <div className="flex-1 overflow-y-auto" style={{ padding: isMobile ? '16px 16px' : '24px 28px' }}>
         {/* Filters panel */}
         {showFilters && (
           <div
@@ -633,6 +647,7 @@ function formatDate(dateString: string) {
 
 function LessonListItem({ lesson, isOwned }: { lesson: Lesson; isOwned: boolean }) {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [hovered, setHovered] = useState(false);
   const genreName = lesson.genre?.name ?? '';
   const colors = GENRE_COLORS[genreName] ?? DEFAULT_GENRE_COLORS;
@@ -643,8 +658,10 @@ function LessonListItem({ lesson, isOwned }: { lesson: Lesson; isOwned: boolean 
       onClick={() => navigate(`/lessons/${lesson.id}`)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="flex items-center gap-3.5 px-[18px] py-[13px] cursor-pointer"
+      className="flex items-center cursor-pointer"
       style={{
+        gap: isMobile ? 10 : 14,
+        padding: isMobile ? '14px 14px' : '13px 18px',
         background: hovered ? 'var(--surface2)' : 'transparent',
         borderLeft: `3px solid ${hovered ? barColor : 'transparent'}`,
         transition: 'background 0.12s',
@@ -659,10 +676,10 @@ function LessonListItem({ lesson, isOwned }: { lesson: Lesson; isOwned: boolean 
 
       {/* Text content */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-0.5">
+        <div className="flex items-center gap-2 mb-0.5 flex-wrap">
           <span
-            className="text-sm font-semibold tracking-tight"
-            style={{ color: 'var(--text-primary)' }}
+            className="text-sm font-semibold tracking-tight truncate"
+            style={{ color: 'var(--text-primary)', flex: 1, minWidth: 0 }}
             data-testid="lesson-list-title"
           >
             {lesson.title}
@@ -676,6 +693,15 @@ function LessonListItem({ lesson, isOwned }: { lesson: Lesson; isOwned: boolean 
               Shared{lesson.shared_by ? ` · ${lesson.shared_by}` : ''}
             </span>
           )}
+          {isMobile && lesson.genre && (
+            <span
+              className="shrink-0 text-[11px] font-medium font-mono rounded-full"
+              style={{ background: colors.bg, color: colors.text, padding: '3px 9px' }}
+              data-testid="lesson-list-genre"
+            >
+              {lesson.genre.name}
+            </span>
+          )}
         </div>
         <p
           className="text-xs line-clamp-1"
@@ -684,10 +710,21 @@ function LessonListItem({ lesson, isOwned }: { lesson: Lesson; isOwned: boolean 
         >
           {lesson.description}
         </p>
+        {isMobile && (
+          <div className="flex items-center gap-2.5 mt-1">
+            <span className="text-[11px] font-mono" style={{ color: 'var(--text-muted)' }} data-testid="lesson-list-date">
+              {formatDate(lesson.created_at)}
+            </span>
+            <span className="flex items-center gap-[3px] text-[11px] font-mono" style={{ color: 'var(--text-muted)' }} data-testid="lesson-list-file-count">
+              <File className="w-[11px] h-[11px]" />
+              {lesson.files?.length ?? 0}
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* Genre tag */}
-      {lesson.genre && (
+      {/* Genre tag — desktop only */}
+      {!isMobile && lesson.genre && (
         <span
           className="shrink-0 text-[11px] font-medium font-mono rounded-full"
           style={{ background: colors.bg, color: colors.text, padding: '3px 9px' }}
@@ -697,24 +734,28 @@ function LessonListItem({ lesson, isOwned }: { lesson: Lesson; isOwned: boolean 
         </span>
       )}
 
-      {/* Date */}
-      <span
-        className="shrink-0 text-[11px] font-mono text-right"
-        style={{ color: 'var(--text-muted)', width: 80 }}
-        data-testid="lesson-list-date"
-      >
-        {formatDate(lesson.created_at)}
-      </span>
+      {/* Date — desktop only */}
+      {!isMobile && (
+        <span
+          className="shrink-0 text-[11px] font-mono text-right"
+          style={{ color: 'var(--text-muted)', width: 80 }}
+          data-testid="lesson-list-date"
+        >
+          {formatDate(lesson.created_at)}
+        </span>
+      )}
 
-      {/* File count */}
-      <span
-        className="shrink-0 flex items-center justify-end gap-[3px] text-[11px] font-mono"
-        style={{ color: 'var(--text-muted)', width: 44 }}
-        data-testid="lesson-list-file-count"
-      >
-        <File className="w-[11px] h-[11px]" />
-        {lesson.files?.length ?? 0}
-      </span>
+      {/* File count — desktop only */}
+      {!isMobile && (
+        <span
+          className="shrink-0 flex items-center justify-end gap-[3px] text-[11px] font-mono"
+          style={{ color: 'var(--text-muted)', width: 44 }}
+          data-testid="lesson-list-file-count"
+        >
+          <File className="w-[11px] h-[11px]" />
+          {lesson.files?.length ?? 0}
+        </span>
+      )}
     </div>
   );
 }
