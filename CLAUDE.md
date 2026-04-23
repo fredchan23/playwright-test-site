@@ -296,7 +296,7 @@ Added full mobile support (breakpoint `< 640px`) across all protected pages. Ref
 
 ### AI Metadata Autofill — Complete (2026-04-23)
 
-Feature shipped end-to-end. Spec at `docs/SPEC-ai-metadata-autofill.md`.
+Feature shipped end-to-end. Spec at `docs/specs/SPEC-ai-metadata-autofill.md`.
 
 **What was built:**
 - DB migration `supabase/migrations/20260422000000_add_genre_other.sql` — adds "Other" genre (applied via Supabase SQL Editor)
@@ -313,15 +313,49 @@ Feature shipped end-to-end. Spec at `docs/SPEC-ai-metadata-autofill.md`.
 
 - **44/45 local tests passing** — the one failure is `qa-panel.spec.ts › ask a question @slow`, which times out at 30s waiting for a live Gemini response. Not a regression; pre-existing network flakiness on the slow-tagged test.
 - **Cloud Build step 4 fix committed** — needs a triggered build to confirm secrets (`TEST_*`, `SUPABASE_SERVICE_ROLE_KEY`) are provisioned in Secret Manager under the expected names.
-- **Library page E2E tests** — `LessonCard` and `LessonListItem` hover assertions (border color, transform) may need updating to reflect new genre-specific `BAR_COLORS` values instead of `var(--accent)`. Verify before next test run.
-- **Mobile E2E coverage** — no Playwright tests yet cover the mobile breakpoint flows (drawer open/close, tab switching, icon-only buttons). Consider adding viewport-specific tests when the regression suite is next extended.
+- **Mobile E2E coverage** — plan drafted at `tasks/plan.md` (on hold). No hover assertions exist in the current library.spec.ts so the BAR_COLORS concern noted previously is moot.
 
 ## Project Docs (git-ignored, local only)
-All specification and planning documents live in `docs/` and `tasks/` — both are git-ignored.
-- `docs/SPEC-ai-metadata-autofill.md` — **current** — AI Metadata Autofill feature spec (2026-04-22)
-- `docs/ideas/ai-metadata-autofill.md` — idea one-pager for the above feature
-- `docs/SPEC.md` — earlier feature enhancement specifications
-- `docs/enhancements-plan.md` — implementation plan for the 2026-04-17 enhancements
-- `docs/enhancements-todo.md` — task checklist (all complete)
-- `tasks/plan.md` / `tasks/todo.md` — prior Q&A feature implementation plan
-- `tasks/playwright-plan.md` / `tasks/playwright-todo.md` — Playwright regression suite plan (pending)
+
+Both `docs/` and `tasks/` are git-ignored.
+
+### docs/ layout
+
+```
+docs/
+├── DEPLOYMENT.md               ← live ops reference (GCP Cloud Run setup)
+├── capstone-report.md          ← permanent project report
+├── decisions/                  ← Architecture Decision Records (permanent)
+│   ├── ADR-001-lesson-qa-feature.md
+│   ├── ADR-002-long-context-rag-pivot.md
+│   └── ADR-003-security-hardening-2026-04.md
+├── specs/                      ← feature specs (one file per feature, all complete)
+│   ├── SPEC-enhancements-2026-04-17.md   (MD rendering, Save chat, PDF thumbnail)
+│   └── SPEC-ai-metadata-autofill.md
+├── studynode/                  ← design reference HTML + screenshots
+└── archive/                    ← session notes, idea one-pagers
+    ├── session-2026-04-17.md
+    └── ideas/
+        └── ai-metadata-autofill.md
+```
+
+### tasks/ layout
+
+```
+tasks/
+├── plan.md     ← active plan (Mobile E2E coverage — on hold)
+├── todo.md     ← active todo (empty; links to plan.md)
+└── archive/    ← completed plans and todos
+    ├── plan-enhancements-2026-04-17.md
+    ├── todo-enhancements-2026-04-17.md
+    ├── plan-playwright-suite.md
+    ├── todo-playwright-suite.md
+    └── todo-ai-metadata-autofill.md
+```
+
+### Workflow for new features
+
+1. Write spec → `docs/specs/SPEC-<feature>.md`
+2. Write plan → `tasks/plan.md` (replace previous, or rename previous to archive first)
+3. Write task list → `tasks/todo.md`
+4. On completion: move plan + todo to `tasks/archive/`; spec stays in `docs/specs/` (permanent record)
