@@ -1,6 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeSanitize from 'rehype-sanitize';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
+import { katexSanitizeSchema } from '../lib/sanitizeSchema';
 import { supabase } from '../lib/supabase';
 import { Sparkles, Send, Trash2, Loader2, Download, MessageCircle } from 'lucide-react';
 
@@ -235,7 +239,11 @@ export default function LessonQAPanel({ lessonId, columnMode = false }: LessonQA
             ) : (
               <div className="prose prose-sm max-w-none" style={{ color: 'var(--text-primary)' }}>
                 <ReactMarkdown
-                  rehypePlugins={[rehypeSanitize]}
+                  remarkPlugins={[remarkMath]}
+                  rehypePlugins={[
+                    [rehypeKatex, { output: 'html', throwOnError: false }],
+                    [rehypeSanitize, katexSanitizeSchema],
+                  ]}
                   components={{
                     a: ({ children, href }) => (
                       <a href={href} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', textDecoration: 'underline' }}>
