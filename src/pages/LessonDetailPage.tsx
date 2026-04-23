@@ -433,7 +433,7 @@ export default function LessonDetailPage() {
                           <img
                             src={thumbnailUrls[file.id]}
                             alt={file.filename}
-                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                            className="w-full h-full object-cover object-top transition-transform group-hover:scale-105"
                             loading="lazy"
                             data-testid={isPdf(file) ? `lesson-file-pdf-thumbnail-${file.id}` : undefined}
                           />

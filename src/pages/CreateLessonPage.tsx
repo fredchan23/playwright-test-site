@@ -273,7 +273,45 @@ export default function CreateLessonPage() {
           style={{ background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}
           data-testid="create-lesson-form"
         >
-          {autofilling && <span data-testid="create-lesson-autofill-loading" style={{ display: 'none' }} />}
+          {autofilling && (
+            <>
+              <style>{`
+                @keyframes autofill-shimmer {
+                  0% { background-position: 200% 0; }
+                  100% { background-position: -200% 0; }
+                }
+                .autofill-shimmer-field {
+                  background: linear-gradient(90deg,
+                    var(--surface2) 25%,
+                    var(--surface) 50%,
+                    var(--surface2) 75%
+                  ) !important;
+                  background-size: 200% 100% !important;
+                  animation: autofill-shimmer 1.4s ease-in-out infinite !important;
+                }
+              `}</style>
+              <div
+                data-testid="create-lesson-autofill-loading"
+                className="flex items-center gap-2.5 px-4 py-3 rounded-lg text-sm"
+                style={{
+                  background: 'color-mix(in srgb, var(--accent) 8%, transparent)',
+                  border: '1px solid color-mix(in srgb, var(--accent) 20%, transparent)',
+                  color: 'var(--accent)',
+                }}
+              >
+                <svg
+                  className="w-4 h-4 shrink-0 animate-spin"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" strokeLinecap="round" />
+                </svg>
+                <span>Analysing file for metadata suggestions…</span>
+              </div>
+            </>
+          )}
           <div className="flex flex-col gap-1.5">
             <label htmlFor="title" className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
               Title *
@@ -285,12 +323,12 @@ export default function CreateLessonPage() {
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter lesson title"
               disabled={autofilling}
+              className={autofilling ? 'autofill-shimmer-field' : ''}
               style={{
                 border: `1px solid ${errors.title ? 'oklch(0.58 0.18 25)' : 'var(--border)'}`,
                 borderRadius: 8, padding: '10px 12px', fontSize: 14,
-                color: 'var(--text-primary)', background: autofilling ? 'var(--surface2)' : 'var(--surface)',
+                color: 'var(--text-primary)', background: 'var(--surface)',
                 outline: 'none', height: 40, fontFamily: 'inherit', width: '100%',
-                opacity: autofilling ? 0.6 : 1,
               }}
               data-testid="create-lesson-title-input"
               aria-label="Lesson title"
@@ -313,12 +351,12 @@ export default function CreateLessonPage() {
               rows={6}
               placeholder="Enter lesson description"
               disabled={autofilling}
+              className={autofilling ? 'autofill-shimmer-field' : ''}
               style={{
                 border: `1px solid ${errors.description ? 'oklch(0.58 0.18 25)' : 'var(--border)'}`,
                 borderRadius: 8, padding: '10px 12px', fontSize: 14,
-                color: 'var(--text-primary)', background: autofilling ? 'var(--surface2)' : 'var(--surface)',
+                color: 'var(--text-primary)', background: 'var(--surface)',
                 outline: 'none', resize: 'vertical', lineHeight: 1.5, fontFamily: 'inherit', width: '100%',
-                opacity: autofilling ? 0.6 : 1,
               }}
               data-testid="create-lesson-description-input"
               aria-label="Lesson description"
@@ -339,11 +377,11 @@ export default function CreateLessonPage() {
               value={genreId}
               onChange={(e) => setGenreId(e.target.value)}
               disabled={autofilling}
+              className={autofilling ? 'autofill-shimmer-field' : ''}
               style={{
                 border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px',
-                fontSize: 14, color: 'var(--text-primary)', background: autofilling ? 'var(--surface2)' : 'var(--surface)',
+                fontSize: 14, color: 'var(--text-primary)', background: 'var(--surface)',
                 outline: 'none', height: 40, fontFamily: 'inherit', appearance: 'none', width: '100%',
-                opacity: autofilling ? 0.6 : 1,
               }}
               data-testid="create-lesson-genre-dropdown"
               aria-label="Select genre"
@@ -369,11 +407,11 @@ export default function CreateLessonPage() {
               onKeyDown={handleTagInput}
               placeholder="Enter tags separated by commas"
               disabled={autofilling}
+              className={autofilling ? 'autofill-shimmer-field' : ''}
               style={{
                 border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px',
-                fontSize: 14, color: 'var(--text-primary)', background: autofilling ? 'var(--surface2)' : 'var(--surface)',
+                fontSize: 14, color: 'var(--text-primary)', background: 'var(--surface)',
                 outline: 'none', height: 40, fontFamily: 'inherit', width: '100%',
-                opacity: autofilling ? 0.6 : 1,
               }}
               data-testid="create-lesson-tags-input"
               aria-label="Lesson tags"
