@@ -294,26 +294,27 @@ Added full mobile support (breakpoint `< 640px`) across all protected pages. Ref
 
 **Fix:** Replaced `CreditCard as Edit` with `SquarePen as Edit`.
 
-### AI Metadata Autofill — Spec Complete (2026-04-22)
+### AI Metadata Autofill — Complete (2026-04-23)
 
-Feature spec written and saved at `docs/SPEC-ai-metadata-autofill.md`. Idea one-pager at `docs/ideas/ai-metadata-autofill.md`. Ready for task planning and implementation in the next session.
+Feature shipped end-to-end. Spec at `docs/SPEC-ai-metadata-autofill.md`.
 
-**Key decisions locked in the spec:**
-- New edge function `lesson-metadata-suggest` — same Vertex AI / Gemini 2.5 Flash pattern as `lesson-qa-ask`
-- Trigger: first file added to `CreateLessonPage` only; 5 MB client-side cap (Deno body limit risk)
-- Returns `{ title?, description?, tags[] (max 3), genre? }` — partial fills fine
-- Genre list includes "Other" as explicit fallback; requires a DB migration to add it
-- Loading UX: shimmer on all four fields + `disabled`; `data-testid="create-lesson-autofill-loading"` on form
-- Silent fail on error — form behaves as if autofill never ran
-- Guard: only populate fields still empty at response time
+**What was built:**
+- DB migration `supabase/migrations/20260422000000_add_genre_other.sql` — adds "Other" genre (applied via Supabase SQL Editor)
+- Edge function `supabase/functions/lesson-metadata-suggest/index.ts` — accepts base64 file + MIME type, returns `{ title?, description?, tags?, genre? }` via Gemini 2.5 Flash (Vertex AI). Deployed with `--no-verify-jwt` (ES256 gotcha).
+- `src/pages/CreateLessonPage.tsx` — autofill triggered on first file drop (≤5 MB). `autofillTriggered` ref (not state) prevents re-trigger. Fields disabled with animated shimmer gradient during the in-flight request; a spinner banner "Analysing file for metadata suggestions…" makes the loading state obvious. Empty-field guard: only populates fields still blank at response time. Silent fail on any error.
+- `e2e/specs/create-lesson-autofill.spec.ts` — 4 Playwright tests: shimmer+disabled state, field population, single-trigger guard, pre-filled-field preservation. All 4 passing.
+- `e2e/specs/edge-function-metadata.spec.ts` — 6 API tests against the deployed function. All 6 passing.
+
+**UX detail:** PDF thumbnails in `LessonDetailPage` now use `object-top` so the top of the first page (title/headings) is always visible rather than the vertical centre.
+
+**Shimmer implementation note:** Uses a `<style>` tag injected into the form when `autofilling === true` defining a `@keyframes autofill-shimmer` gradient sweep. Applied via `className="autofill-shimmer-field"` on each input/textarea/select. The `<style>` tag unmounts when autofilling ends — no persistent global styles added.
 
 ### Outstanding (next session)
 
-- **All 45 local tests now passing** as of 2026-04-18.
+- **44/45 local tests passing** — the one failure is `qa-panel.spec.ts › ask a question @slow`, which times out at 30s waiting for a live Gemini response. Not a regression; pre-existing network flakiness on the slow-tagged test.
 - **Cloud Build step 4 fix committed** — needs a triggered build to confirm secrets (`TEST_*`, `SUPABASE_SERVICE_ROLE_KEY`) are provisioned in Secret Manager under the expected names.
 - **Library page E2E tests** — `LessonCard` and `LessonListItem` hover assertions (border color, transform) may need updating to reflect new genre-specific `BAR_COLORS` values instead of `var(--accent)`. Verify before next test run.
 - **Mobile E2E coverage** — no Playwright tests yet cover the mobile breakpoint flows (drawer open/close, tab switching, icon-only buttons). Consider adding viewport-specific tests when the regression suite is next extended.
-- **AI Metadata Autofill — Task 3 next** — edge function `lesson-metadata-suggest` deployed and tested (6/6 API tests pass). DB migration file written (`supabase/migrations/20260422000000_add_genre_other.sql`) — still needs to be applied manually via Supabase SQL Editor before Task 3 can be tested end-to-end. Next: implement autofill integration in `src/pages/CreateLessonPage.tsx` per `docs/SPEC-ai-metadata-autofill.md` section 4.
 
 ## Project Docs (git-ignored, local only)
 All specification and planning documents live in `docs/` and `tasks/` — both are git-ignored.
