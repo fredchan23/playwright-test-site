@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -16,6 +16,16 @@ interface UploadedFile {
 
 const ALLOWED_FILE_TYPES = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const AUTOFILL_SIZE_LIMIT = 5 * 1024 * 1024;
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 export default function CreateLessonPage() {
   const navigate = useNavigate();
@@ -30,6 +40,8 @@ export default function CreateLessonPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [autofilling, setAutofilling] = useState(false);
+  const autofillTriggered = useRef(false);
 
   useEffect(() => {
     loadGenres();
@@ -39,6 +51,49 @@ export default function CreateLessonPage() {
     const { data } = await supabase.from('genres').select('*').order('name');
     if (data) {
       setGenres(data);
+    }
+  };
+
+  const runAutofill = async (file: File) => {
+    setAutofilling(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const mimeType = file.type === 'image/jpg' ? 'image/jpeg' : file.type;
+      const fileData = await fileToBase64(file);
+
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/lesson-metadata-suggest`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ file_data: fileData, mime_type: mimeType }),
+        },
+      );
+
+      if (!resp.ok) return;
+
+      const data = await resp.json();
+
+      if (data.title) setTitle((prev) => (prev === '' ? data.title : prev));
+      if (data.description) setDescription((prev) => (prev === '' ? data.description : prev));
+      if (data.tags && Array.isArray(data.tags)) {
+        setTags((prev) => (prev.length === 0 ? (data.tags as string[]).slice(0, 3) : prev));
+      }
+      if (data.genre) {
+        const match = genres.find(
+          (g) => g.name.toLowerCase() === (data.genre as string).toLowerCase(),
+        );
+        if (match) setGenreId((prev) => (prev === '' ? match.id : prev));
+      }
+    } catch {
+      // Silent fail — form behaves as if autofill never ran
+    } finally {
+      setAutofilling(false);
     }
   };
 
@@ -64,6 +119,7 @@ export default function CreateLessonPage() {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || []);
     const newErrors: Record<string, string> = {};
+    let autofillFile: File | null = null;
 
     selectedFiles.forEach(file => {
       if (!ALLOWED_FILE_TYPES.includes(file.type)) {
@@ -74,6 +130,11 @@ export default function CreateLessonPage() {
       if (file.size > MAX_FILE_SIZE) {
         newErrors.files = 'File size exceeds 10MB limit';
         return;
+      }
+
+      if (!autofillTriggered.current && file.size <= AUTOFILL_SIZE_LIMIT) {
+        autofillTriggered.current = true;
+        autofillFile = file;
       }
 
       const uploadedFile: UploadedFile = { file };
@@ -92,6 +153,8 @@ export default function CreateLessonPage() {
 
     setErrors(newErrors);
     e.target.value = '';
+
+    if (autofillFile) runAutofill(autofillFile);
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -210,6 +273,7 @@ export default function CreateLessonPage() {
           style={{ background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}
           data-testid="create-lesson-form"
         >
+          {autofilling && <span data-testid="create-lesson-autofill-loading" style={{ display: 'none' }} />}
           <div className="flex flex-col gap-1.5">
             <label htmlFor="title" className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
               Title *
@@ -220,11 +284,13 @@ export default function CreateLessonPage() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter lesson title"
+              disabled={autofilling}
               style={{
                 border: `1px solid ${errors.title ? 'oklch(0.58 0.18 25)' : 'var(--border)'}`,
                 borderRadius: 8, padding: '10px 12px', fontSize: 14,
-                color: 'var(--text-primary)', background: 'var(--surface)',
+                color: 'var(--text-primary)', background: autofilling ? 'var(--surface2)' : 'var(--surface)',
                 outline: 'none', height: 40, fontFamily: 'inherit', width: '100%',
+                opacity: autofilling ? 0.6 : 1,
               }}
               data-testid="create-lesson-title-input"
               aria-label="Lesson title"
@@ -246,11 +312,13 @@ export default function CreateLessonPage() {
               onChange={(e) => setDescription(e.target.value)}
               rows={6}
               placeholder="Enter lesson description"
+              disabled={autofilling}
               style={{
                 border: `1px solid ${errors.description ? 'oklch(0.58 0.18 25)' : 'var(--border)'}`,
                 borderRadius: 8, padding: '10px 12px', fontSize: 14,
-                color: 'var(--text-primary)', background: 'var(--surface)',
+                color: 'var(--text-primary)', background: autofilling ? 'var(--surface2)' : 'var(--surface)',
                 outline: 'none', resize: 'vertical', lineHeight: 1.5, fontFamily: 'inherit', width: '100%',
+                opacity: autofilling ? 0.6 : 1,
               }}
               data-testid="create-lesson-description-input"
               aria-label="Lesson description"
@@ -270,10 +338,12 @@ export default function CreateLessonPage() {
               id="genre"
               value={genreId}
               onChange={(e) => setGenreId(e.target.value)}
+              disabled={autofilling}
               style={{
                 border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px',
-                fontSize: 14, color: 'var(--text-primary)', background: 'var(--surface)',
+                fontSize: 14, color: 'var(--text-primary)', background: autofilling ? 'var(--surface2)' : 'var(--surface)',
                 outline: 'none', height: 40, fontFamily: 'inherit', appearance: 'none', width: '100%',
+                opacity: autofilling ? 0.6 : 1,
               }}
               data-testid="create-lesson-genre-dropdown"
               aria-label="Select genre"
@@ -298,10 +368,12 @@ export default function CreateLessonPage() {
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={handleTagInput}
               placeholder="Enter tags separated by commas"
+              disabled={autofilling}
               style={{
                 border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px',
-                fontSize: 14, color: 'var(--text-primary)', background: 'var(--surface)',
+                fontSize: 14, color: 'var(--text-primary)', background: autofilling ? 'var(--surface2)' : 'var(--surface)',
                 outline: 'none', height: 40, fontFamily: 'inherit', width: '100%',
+                opacity: autofilling ? 0.6 : 1,
               }}
               data-testid="create-lesson-tags-input"
               aria-label="Lesson tags"
@@ -431,9 +503,9 @@ export default function CreateLessonPage() {
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || autofilling}
               className="flex-1 px-5 py-2.5 rounded-lg text-sm font-medium text-white"
-              style={{ background: 'var(--accent)', border: 'none', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, fontFamily: 'inherit' }}
+              style={{ background: 'var(--accent)', border: 'none', cursor: (loading || autofilling) ? 'not-allowed' : 'pointer', opacity: (loading || autofilling) ? 0.7 : 1, fontFamily: 'inherit' }}
               data-testid="create-lesson-save-button"
             >
               {loading ? 'Creating…' : 'Create Lesson'}

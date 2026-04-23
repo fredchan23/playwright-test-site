@@ -22,6 +22,7 @@ export class CreateLessonPage {
   readonly cancelDialog: Locator;
   readonly cancelDialogConfirm: Locator;
   readonly cancelDialogCancel: Locator;
+  readonly autofillLoading: Locator;
 
   constructor(page: Page) {
     this.page = page;
@@ -44,6 +45,7 @@ export class CreateLessonPage {
     this.cancelDialog = page.getByTestId('create-lesson-cancel-dialog');
     this.cancelDialogConfirm = page.getByTestId('create-lesson-cancel-dialog-confirm');
     this.cancelDialogCancel = page.getByTestId('create-lesson-cancel-dialog-cancel');
+    this.autofillLoading = page.getByTestId('create-lesson-autofill-loading');
   }
 
   genreOption(genreName: string): Locator {
