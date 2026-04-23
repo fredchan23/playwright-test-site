@@ -116,8 +116,7 @@ export default function CreateLessonPage() {
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(e.target.files || []);
+  const processFiles = (selectedFiles: File[]) => {
     const newErrors: Record<string, string> = {};
     let autofillFile: File | null = null;
 
@@ -152,20 +151,18 @@ export default function CreateLessonPage() {
     });
 
     setErrors(newErrors);
-    e.target.value = '';
 
     if (autofillFile) runAutofill(autofillFile);
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    processFiles(Array.from(e.target.files ?? []));
+    e.target.value = '';
+  };
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    const droppedFiles = Array.from(e.dataTransfer.files);
-    const fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    const dataTransfer = new DataTransfer();
-    droppedFiles.forEach(file => dataTransfer.items.add(file));
-    fileInput.files = dataTransfer.files;
-    handleFileSelect({ target: fileInput } as React.ChangeEvent<HTMLInputElement>);
+    processFiles(Array.from(e.dataTransfer.files));
   };
 
   const removeFile = (index: number) => {

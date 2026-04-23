@@ -82,6 +82,16 @@ test.describe('lesson-metadata-suggest edge function', () => {
     expect(resp.status()).not.toBe(400);
   });
 
+  // ── Size cap ──────────────────────────────────────────────────────────────
+  test('returns 400 when file_data exceeds 7 MB base64 limit', async ({ request }) => {
+    const resp = await request.post(FUNCTION_URL, {
+      headers: authHeader(),
+      data: { file_data: 'a'.repeat(7_000_001), mime_type: 'image/png' },
+    });
+    expect(resp.status()).toBe(400);
+    expect((await resp.json()).error).toMatch(/7 MB/i);
+  });
+
   // ── Happy path — valid image ──────────────────────────────────────────────
   test('returns 200 with metadata fields for a valid image', async ({ request }) => {
     const resp = await request.post(FUNCTION_URL, {
