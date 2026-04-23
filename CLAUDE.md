@@ -20,6 +20,21 @@ npm run preview      # Preview production build locally
 
 No test runner is configured — this is a Playwright test target site, not a project that runs its own tests.
 
+### Supabase CLI
+
+Supabase CLI is available via npx (no global install required). Current version: **2.93.0**.
+
+```bash
+npx supabase --version          # Confirm version
+npx supabase status             # Show linked project status
+npx supabase db diff            # Diff local schema against remote
+npx supabase functions serve    # Serve edge functions locally for dev/testing
+npx supabase functions deploy <name>   # Deploy a specific edge function
+npx supabase migration new <name>      # Scaffold a new migration file
+```
+
+The project is **linked** to the Supabase remote. Migrations and edge functions can be deployed via CLI or the Supabase dashboard — both are valid. Prefer CLI for repeatability; use the dashboard SQL Editor for one-off hotfixes.
+
 ## Architecture
 
 This is a React + TypeScript + Vite SPA — a **Learning Management System for Playwright automation training**. It's intentionally built as a test target site with rich `data-testid` attributes throughout the UI.
@@ -65,15 +80,37 @@ VITE_SUPABASE_ANON_KEY=
 In production these are injected via Google Cloud Secret Manager during Cloud Build (see `cloudbuild.yaml`).
 
 ### Supabase Migrations
-Schema lives in `supabase/migrations/`. Apply via Supabase dashboard or CLI. Local Supabase CLI requires Docker — not available in this WSL environment.
+Schema lives in `supabase/migrations/`. Apply via `npx supabase db push` (CLI) or the Supabase dashboard SQL Editor. Both are valid; CLI is preferred for migrations that are already in the migrations directory.
 
 ### Supabase Edge Functions
-Located in `supabase/functions/`. Three functions support the Q&A feature:
+Located in `supabase/functions/`. Current functions:
 - **lesson-qa-index** — checks whether a lesson has indexable PDF files
 - **lesson-qa-ask** — sends question + PDF content to Gemini 2.5 Flash (Vertex AI), persists messages
 - **lesson-qa-clear** — deletes all Q&A messages for a lesson
+- **lesson-metadata-suggest** — accepts a base64 file, returns suggested title/description/tags/genre via Gemini (AI Metadata Autofill feature)
 
-All Supabase changes (edge functions, migrations) are deployed **manually via the Supabase dashboard** — do not suggest CLI deploy commands.
+Deploy a function: `npx supabase functions deploy <function-name> --no-verify-jwt`. The `--no-verify-jwt` flag is **required** — see gotcha below.
+
+**Shared code between edge functions:** Supabase edge functions are isolated Deno processes. `_shared/` imports only work when deployed via CLI (CLI bundles before upload). They do **not** work when copy-pasting into the dashboard. Since we now use the CLI for deployment, `_shared/` is viable — but existing functions copy helpers verbatim. New functions should use `_shared/` only if the CLI deploy path is confirmed working end-to-end.
+
+### Supabase Edge Functions — ES256 JWT Gotcha (2026-04-23)
+
+**Root cause:** This Supabase project now issues **ES256**-signed JWTs (both the anon/publishable key and the user access tokens). The Supabase edge function gateway performs JWT verification before routing to the function. For **newly deployed** functions the gateway defaults to HS256 validation, which rejects ES256 tokens with `UNAUTHORIZED_UNSUPPORTED_TOKEN_ALGORITHM`.
+
+**Observed symptom:** Every authenticated request returns 401 `{"code":"UNAUTHORIZED_UNSUPPORTED_TOKEN_ALGORITHM","message":"Unsupported JWT algorithm ES256"}` — even with a valid user session token — while the same token works against older functions that were deployed before the project migrated to ES256.
+
+**Why older functions are unaffected:** `lesson-qa-index`, `lesson-qa-ask`, and `lesson-qa-clear` were originally deployed with `--no-verify-jwt`, which disables gateway-level JWT verification and lets the function handle auth itself (by constructing a userClient from the raw `Authorization` header). The gateway's HS256/ES256 mismatch is therefore irrelevant to them.
+
+**Fix:** Always deploy new functions with:
+```bash
+npx supabase functions deploy <name> --no-verify-jwt
+```
+
+**Impact on function code:** With `--no-verify-jwt`, the gateway does **not** validate the token. The function must check for the presence of the `Authorization` header itself (as all current functions already do). Cryptographic JWT verification is not done at either layer — access control is enforced by the Supabase RLS policies when the function creates a `userClient` with the bearer token.
+
+**Impact on testing:** User JWTs obtained via `client.auth.signInWithPassword()` are ES256 and cannot be used as Bearer tokens against gateway-verified functions. For the `api` Playwright project (`edge-function-metadata.spec.ts`), the test signs in to get a real user JWT and tests against the deployed `--no-verify-jwt` function — this works correctly.
+
+**Rule:** Every new Supabase edge function in this project must be deployed with `--no-verify-jwt` until Supabase updates the gateway to support ES256.
 
 ### data-testid Convention
 Every interactive element and major section has a `data-testid` attribute following the pattern `{page}-{element}` (e.g., `library-search-input`, `library-lesson-card-{id}`, `library-filter-genre-programming`). These are the Playwright test hooks — preserve them when modifying UI.
@@ -257,16 +294,32 @@ Added full mobile support (breakpoint `< 640px`) across all protected pages. Ref
 
 **Fix:** Replaced `CreditCard as Edit` with `SquarePen as Edit`.
 
+### AI Metadata Autofill — Spec Complete (2026-04-22)
+
+Feature spec written and saved at `docs/SPEC-ai-metadata-autofill.md`. Idea one-pager at `docs/ideas/ai-metadata-autofill.md`. Ready for task planning and implementation in the next session.
+
+**Key decisions locked in the spec:**
+- New edge function `lesson-metadata-suggest` — same Vertex AI / Gemini 2.5 Flash pattern as `lesson-qa-ask`
+- Trigger: first file added to `CreateLessonPage` only; 5 MB client-side cap (Deno body limit risk)
+- Returns `{ title?, description?, tags[] (max 3), genre? }` — partial fills fine
+- Genre list includes "Other" as explicit fallback; requires a DB migration to add it
+- Loading UX: shimmer on all four fields + `disabled`; `data-testid="create-lesson-autofill-loading"` on form
+- Silent fail on error — form behaves as if autofill never ran
+- Guard: only populate fields still empty at response time
+
 ### Outstanding (next session)
 
 - **All 45 local tests now passing** as of 2026-04-18.
 - **Cloud Build step 4 fix committed** — needs a triggered build to confirm secrets (`TEST_*`, `SUPABASE_SERVICE_ROLE_KEY`) are provisioned in Secret Manager under the expected names.
 - **Library page E2E tests** — `LessonCard` and `LessonListItem` hover assertions (border color, transform) may need updating to reflect new genre-specific `BAR_COLORS` values instead of `var(--accent)`. Verify before next test run.
 - **Mobile E2E coverage** — no Playwright tests yet cover the mobile breakpoint flows (drawer open/close, tab switching, icon-only buttons). Consider adding viewport-specific tests when the regression suite is next extended.
+- **AI Metadata Autofill — Task 3 next** — edge function `lesson-metadata-suggest` deployed and tested (6/6 API tests pass). DB migration file written (`supabase/migrations/20260422000000_add_genre_other.sql`) — still needs to be applied manually via Supabase SQL Editor before Task 3 can be tested end-to-end. Next: implement autofill integration in `src/pages/CreateLessonPage.tsx` per `docs/SPEC-ai-metadata-autofill.md` section 4.
 
 ## Project Docs (git-ignored, local only)
 All specification and planning documents live in `docs/` and `tasks/` — both are git-ignored.
-- `docs/SPEC.md` — feature enhancement specifications
+- `docs/SPEC-ai-metadata-autofill.md` — **current** — AI Metadata Autofill feature spec (2026-04-22)
+- `docs/ideas/ai-metadata-autofill.md` — idea one-pager for the above feature
+- `docs/SPEC.md` — earlier feature enhancement specifications
 - `docs/enhancements-plan.md` — implementation plan for the 2026-04-17 enhancements
 - `docs/enhancements-todo.md` — task checklist (all complete)
 - `tasks/plan.md` / `tasks/todo.md` — prior Q&A feature implementation plan
