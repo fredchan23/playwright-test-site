@@ -3,7 +3,7 @@
 ## Phase 1: Foundation
 
 - [x] Task 1: Write migration file `supabase/migrations/20260422000000_add_genre_other.sql`
-- [ ] Task 1 (manual): Apply migration via Supabase SQL Editor — verify "Other" in genres table
+- [x] Task 1 (manual): Apply migration via Supabase SQL Editor — verify "Other" in genres table
 
 ## Phase 2: Edge Function
 
@@ -15,10 +15,10 @@
 
 ## Phase 3: Client
 
-- [ ] Task 3: Update `src/pages/CreateLessonPage.tsx` with autofill integration
+- [x] Task 3: Update `src/pages/CreateLessonPage.tsx` with autofill integration
 - [ ] Task 3 (manual): Dev server walkthrough — drop PDF → shimmer → fields populated
 
 ## Phase 4: Tests
 
-- [ ] Task 4: Create `e2e/specs/create-lesson-autofill.spec.ts`
-- [ ] Task 4: Run tests locally — all 4 pass
+- [x] Task 4: Create `e2e/specs/create-lesson-autofill.spec.ts`
+- [x] Task 4: Run tests locally — all 4 pass
