@@ -153,6 +153,9 @@ New testids added in the 2026-04-17 UI polish session:
 - Assistant messages are rendered through `react-markdown` with `rehype-sanitize`; user messages are plain text
 - Save button exports chat history as a `.md` file (client-side Blob download, no server call)
 - Clear confirm prompt reminds user to save first
+- `throwOnError: false` on `rehype-katex` — malformed LaTeX in a Gemini response falls back to raw source instead of crashing the renderer
+
+**Known limitation — `span.style` CSS injection (2026-04-23):** The KaTeX LaTeX rendering pipeline (`remark-math` + `rehype-katex`, `output: 'html'`) requires `style` to be allowed on `span` elements in the `rehype-sanitize` schema (`src/lib/sanitizeSchema.ts`). This allowance is not scoped to KaTeX-generated spans — any `<span style="...">` in a Gemini response passes through sanitization. A prompt-injection attack embedded in a PDF could cause Gemini to emit `<span style="position:fixed;top:0;left:0;width:100vw;height:100vh;...">` and render a full-page overlay over the app UI (visual phishing). JavaScript execution and form submission remain blocked by the sanitizer's tag allowlist. Risk is acceptable for the current internal LMS context (authenticated users only, no public lesson sharing). **If the app ever allows untrusted users to upload lesson PDFs or exposes the QA panel to a broader audience, add a CSS property allowlist** — either a server-side sanitizer in the `lesson-qa-ask` edge function (e.g. stripping raw HTML from Gemini output) or a client-side CSS sanitizer pass before rendering.
 
 ### Deployment
 Google Cloud Run via Cloud Build (`cloudbuild.yaml`). The app is containerized with nginx (`Dockerfile`, `nginx.conf`). See `docs/DEPLOYMENT.md` for full GCP setup instructions.
