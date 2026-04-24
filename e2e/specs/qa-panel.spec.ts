@@ -76,7 +76,8 @@ test('ask a question → user bubble appears; assistant bubble appears @slow', a
   lessonQAPanel,
   page,
 }) => {
-  test.setTimeout(90_000);
+  // 3-minute budget: ~20s upload, ~30s indexing, ~90s for Gemini in CI
+  test.setTimeout(180_000);
   const lesson = await createLessonWithFile(regularUserId, PDF_ASSET, {
     title: e2eTitle(`QAAsk-${Date.now()}`),
   });
@@ -86,11 +87,21 @@ test('ask a question → user bubble appears; assistant bubble appears @slow', a
 
     await lessonQAPanel.ask('What is this document about?');
 
-    // User message bubble (index 0)
+    // User message bubble appears immediately (set synchronously before fetch)
     await expect(lessonQAPanel.message(0)).toBeVisible({ timeout: 10_000 });
 
-    // Assistant message bubble (index 1) — allow up to 45s for LLM response
-    await expect(lessonQAPanel.message(1)).toBeVisible({ timeout: 45_000 });
+    // Wait for EITHER the assistant bubble OR an error banner to appear.
+    // This lets us fail fast with a meaningful message instead of a 90s timeout.
+    const responseOrError = page.locator('[data-testid="lesson-qa-message-1"], [data-testid="lesson-qa-error"]');
+    await expect(responseOrError).toBeAttached({ timeout: 90_000 });
+
+    // If an error appeared, surface its text in the failure message
+    const errorBanner = page.getByTestId('lesson-qa-error');
+    if (await errorBanner.isVisible()) {
+      throw new Error(`QA panel returned error: "${await errorBanner.textContent()}"`);
+    }
+
+    await expect(lessonQAPanel.message(1)).toBeVisible();
     await expect(lessonQAPanel.message(1)).not.toBeEmpty();
   } finally {
     await deleteLesson(lesson.id);

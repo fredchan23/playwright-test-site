@@ -299,7 +299,7 @@ export default function LessonQAPanel({ lessonId, columnMode = false }: LessonQA
 
       {/* Error banner */}
       {error && (
-        <p className="text-xs rounded px-3 py-2" style={{ color: 'var(--red)', background: 'var(--red-light)' }}>{error}</p>
+        <p className="text-xs rounded px-3 py-2" data-testid="lesson-qa-error" style={{ color: 'var(--red)', background: 'var(--red-light)' }}>{error}</p>
       )}
 
       <div ref={bottomRef} />
