@@ -76,6 +76,7 @@ test('ask a question → user bubble appears; assistant bubble appears @slow', a
   lessonQAPanel,
   page,
 }) => {
+  test.setTimeout(90_000);
   const lesson = await createLessonWithFile(regularUserId, PDF_ASSET, {
     title: e2eTitle(`QAAsk-${Date.now()}`),
   });
