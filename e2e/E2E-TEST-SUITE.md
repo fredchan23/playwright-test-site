@@ -275,6 +275,27 @@ npx playwright test --debug
 
 Pauses execution at each step; opens Playwright Inspector for step-through debugging.
 
+### Video Capture
+
+Video recording is controlled by the `RECORD_VIDEO` environment variable. When set, `playwright.config.ts` switches the `video` option to `'on'`; when absent, video is `'off'`.
+
+```bash
+# Record video for every test (all projects)
+RECORD_VIDEO=1 npm run test:e2e
+
+# Record video for a specific spec
+RECORD_VIDEO=1 npx playwright test e2e/specs/qa-panel.spec.ts
+
+# Record video for a specific project
+RECORD_VIDEO=1 npx playwright test --project=chromium-admin
+```
+
+Videos are saved to `test-results/<test-name>/` as `.webm` files alongside any screenshots and traces. View them via the HTML report:
+
+```bash
+npx playwright show-report   # click any test → Attachments tab → video
+```
+
 ### Against a Different Base URL
 
 ```bash
