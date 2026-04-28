@@ -57,7 +57,7 @@ export default function LibraryPage() {
 
   useEffect(() => {
     loadData();
-  }, [user]);
+  }, [user?.id]);
 
   const loadData = async () => {
     if (!user) return;

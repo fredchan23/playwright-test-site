@@ -65,7 +65,7 @@ export default function LessonDetailPage() {
     if (id) {
       loadLessonDetails();
     }
-  }, [id, user]);
+  }, [id, user?.id]);
 
   const loadLessonDetails = async () => {
     if (!id || !user) return;

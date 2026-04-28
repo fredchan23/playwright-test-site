@@ -360,11 +360,44 @@ Spec at `docs/specs/SPEC-gemini-context-cache.md`.
 
 **Playwright config:** `edge-function-qa-cache.spec.ts` runs in the `api` project (no browser). `testMatch` regex updated to `/edge-function-(metadata|qa-cache)\.spec\.ts/`. Tests that call Gemini use `test.setTimeout(90_000)` to override the 30 s global timeout.
 
+### lesson-qa-ask Performance Review and Fixes (2026-04-28 — Complete)
+
+A code review of the context caching implementation identified and fixed three issues:
+
+**Fix 1 — Parallel token + cache lookup** (`index.ts`): `getGcpAccessToken` and `lookupCache` were sequential. Changed to `Promise.all([getGcpAccessToken(saKey), lookupCache(...)])` — saves 30–60ms on every request.
+
+**Fix 2 — `NO_CACHE` sentinel for small PDFs** (`index.ts`): Gemini enforces a 32,768-token minimum for cached content. PDFs below this threshold caused `createGeminiCache` to fail on every request after a full Vertex AI HTTP round-trip (~1s wasted). Fix: when the error matches the token minimum pattern, upsert `cache_name = 'NO_CACHE'` with a 7-day TTL. Subsequent requests detect the sentinel and skip the create attempt entirely.
+
+**Fix 3 — Stale cache 503 recovery** (`index.ts`): When `generateContent` rejects a `cachedContent` name (400/404) because Vertex AI evicted the cache before our DB TTL expired, the function previously threw an uncaught exception and Supabase returned HTTP 546 to the browser (no body, opaque failure). Fix: detect the condition, delete the stale `lesson_qa_cache` row, and return `{ error: '...' }` with HTTP 503 so `LessonQAPanel` can display a human-readable "try again" message.
+
+**Gemini configuration tuned:**
+- `thinkingConfig.thinkingBudget: 0` — disabled Flash 2.5 thinking tokens (no quality improvement for factual retrieval, significant latency cost)
+- `maxOutputTokens` reduced from 8192 to 2048
+
+**Model experiment — reverted:** `gemini-2.5-flash-lite` in `global` region was deployed and tested. Quality degraded with no latency improvement; reverted to `gemini-2.5-flash` in `asia-southeast1`.
+
+**`GCP_API_ENDPOINT` constant** added to both `lesson-qa-ask` and `lesson-qa-index` to derive the Vertex AI hostname from `GCP_LOCATION` (regional vs global endpoint format differs).
+
+**HTTP 546 gotcha:** Supabase returns 546 (not 500) when `Deno.serve` receives an uncaught exception. Always catch foreseeable error paths and return a JSON response — never let exceptions propagate from the handler.
+
+### Page Reload on Tab Switch — Fixed (2026-04-28)
+
+**Symptom:** Switching away from the app and returning caused a full network reload of lesson data — all Supabase queries re-fired, showing the loading spinner again.
+
+**Root cause:** Supabase JS v2 has `FOCUS_AUTO_REFRESH` enabled by default. When the tab regains visibility, it fires `TOKEN_REFRESHED` via `onAuthStateChange`. `AuthContext` handles this by calling `setUser(sessionUser)` — which always produces a **new object reference**, even for the same user. Any `useEffect` that lists the whole `user` object as a dependency sees a changed reference and re-runs, re-fetching all data.
+
+**Affected files:**
+- `src/pages/LessonDetailPage.tsx` — `useEffect(..., [id, user])` → `[id, user?.id]`
+- `src/pages/LibraryPage.tsx` — `useEffect(..., [user])` → `[user?.id]`
+
+**Rule:** Never use the whole `user` object from `useAuth()` as a `useEffect` dependency. Use `user?.id` (a stable string primitive) instead. Object references from Supabase auth events change on every token refresh.
+
 ### Outstanding (next session)
 
-- **60/60 tests passing** — 57 previous + 3 new `edge-function-qa-cache` API tests. Suite is green.
+- **60/60 tests passing** — suite is green.
 - **Cloud Build step 4** — needs a triggered build to confirm secrets (`TEST_*`, `SUPABASE_SERVICE_ROLE_KEY`) are provisioned in Secret Manager under the expected names.
-- **Mobile E2E coverage** — plan drafted at `tasks/plan.md` (on hold). No hover assertions exist in the current library.spec.ts so the BAR_COLORS concern noted previously is moot.
+- **Mobile E2E coverage** — plan drafted at `tasks/plan.md` (on hold).
+- **Q&A latency** — cache hits still take ~25–30s (Gemini 2.5 Flash inference floor in asia-southeast1). The frontend already has a typewriter effect so perceived latency is acceptable. No further server-side levers identified without a model change.
 
 ## Project Docs (git-ignored, local only)
 
