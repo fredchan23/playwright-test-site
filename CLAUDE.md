@@ -334,9 +334,35 @@ function getUserIdFromJwt(token: string): string | null {
 
 **Rule:** In Supabase edge functions deployed with `--no-verify-jwt`, prefer extracting the user ID from the JWT payload directly rather than calling `auth.getUser(token)`. For RLS-dependent lesson access checks, use the admin client with an explicit `owner_id = userId` check when reliability under load matters.
 
+### Gemini Context Caching for lesson-qa-ask (2026-04-28 — Complete)
+
+Spec at `docs/specs/SPEC-gemini-context-cache.md`.
+
+**What was built:**
+- DB migration `supabase/migrations/20260428000000_add_lesson_qa_cache.sql` — `lesson_qa_cache` table (per-user per-lesson Vertex AI cache names) + RLS + invalidation trigger on `lesson_files`
+- `supabase/functions/lesson-qa-ask/index.ts` — cache lookup → create-on-miss → fallback path. On a cache hit, PDF download is skipped entirely; `cachedContent: cacheName` is passed to `generateContent`. On cache create failure, falls back silently to inline PDF upload.
+- `supabase/functions/lesson-qa-index/index.ts` — added fire-and-forget `cachedContents` availability preflight (logs result, never blocks response)
+- `e2e/specs/edge-function-qa-cache.spec.ts` — 3 API tests (auth guard, cache miss answer, cache hit answer); all passing
+
+**Key implementation details:**
+- Cache is **per-user per-lesson** (`UNIQUE(user_id, lesson_id)` in `lesson_qa_cache`)
+- TTL: 15 minutes (`900s`). Not extended on cache hit — miss after idle >15 min recreates it.
+- DB trigger `trg_invalidate_lesson_qa_cache` on `lesson_files` deletes cache rows when PDFs are added/deleted for a lesson, forcing a fresh miss.
+- Admin client (service role) owns all `lesson_qa_cache` reads/writes.
+- `cachedContents` model name format: `projects/{project}/locations/{location}/publishers/google/models/{model}` — required by Vertex AI, different from the `generateContent` URL path format.
+- Gemini's minimum token threshold (32,768 for Flash) applies — lessons with very small PDFs fall through to the fallback path silently.
+
+**How to read cache hit/miss from logs:**
+- Supabase Dashboard → Edge Functions → `lesson-qa-ask` → Logs
+- Cache hit: `Cache hit for lesson {id}, user {id}: projects/...`
+- Cache miss (create success): `Cache created for lesson {id}, user {id}: projects/...`
+- Cache miss (fallback): `Gemini cache create failed, falling back to inline PDF upload: ...`
+
+**Playwright config:** `edge-function-qa-cache.spec.ts` runs in the `api` project (no browser). `testMatch` regex updated to `/edge-function-(metadata|qa-cache)\.spec\.ts/`. Tests that call Gemini use `test.setTimeout(90_000)` to override the 30 s global timeout.
+
 ### Outstanding (next session)
 
-- **57/57 tests passing** (full suite against Cloud Run URL) — including the previously-flaky `@slow` and `clear history` tests. Suite is green.
+- **60/60 tests passing** — 57 previous + 3 new `edge-function-qa-cache` API tests. Suite is green.
 - **Cloud Build step 4** — needs a triggered build to confirm secrets (`TEST_*`, `SUPABASE_SERVICE_ROLE_KEY`) are provisioned in Secret Manager under the expected names.
 - **Mobile E2E coverage** — plan drafted at `tasks/plan.md` (on hold). No hover assertions exist in the current library.spec.ts so the BAR_COLORS concern noted previously is moot.
 

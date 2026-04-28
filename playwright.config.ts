@@ -36,7 +36,7 @@ export default defineConfig({
         storageState: 'e2e/.auth/regular-user.json',
       },
       dependencies: ['setup'],
-      testIgnore: [/admin-settings\.spec\.ts$/, /edge-function-metadata\.spec\.ts$/],
+      testIgnore: [/admin-settings\.spec\.ts$/, /edge-function-metadata\.spec\.ts$/, /edge-function-qa-cache\.spec\.ts$/],
     },
     {
       name: 'chromium-admin',
@@ -50,7 +50,7 @@ export default defineConfig({
     {
       // API-only tests: no browser, no local dev server, no auth setup dependency.
       name: 'api',
-      testMatch: /edge-function-metadata\.spec\.ts/,
+      testMatch: /edge-function-(metadata|qa-cache)\.spec\.ts/,
     },
   ],
 });
