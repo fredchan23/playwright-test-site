@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -43,6 +43,10 @@ export default function EditLessonPage() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  // Generation counter: ensures only the latest loadLessonData() response is applied.
+  // React StrictMode double-invokes useEffect, launching two concurrent fetches;
+  // without this guard the slower (second) response can overwrite user edits.
+  const loadGenRef = useRef(0);
 
   useEffect(() => {
     if (id) {
@@ -52,12 +56,16 @@ export default function EditLessonPage() {
 
   const loadLessonData = async () => {
     if (!id || !user) return;
+    const currentGen = ++loadGenRef.current;
 
     const [genresResult, lessonResult, filesResult] = await Promise.all([
       supabase.from('genres').select('*').order('name'),
       supabase.from('lessons').select('*').eq('id', id).maybeSingle(),
       supabase.from('lesson_files').select('*').eq('lesson_id', id),
     ]);
+
+    // If a newer fetch has started (e.g. StrictMode second invocation), discard these results.
+    if (currentGen !== loadGenRef.current) return;
 
     if (genresResult.data) {
       setGenres(genresResult.data);
