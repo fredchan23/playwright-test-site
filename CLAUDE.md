@@ -162,7 +162,7 @@ Google Cloud Run via Cloud Build (`cloudbuild.yaml`). The app is containerized w
 
 **Cloud Build gotchas:**
 - `package.json` and `package-lock.json` **must stay committed** — Cloud Build runs `npm ci` which requires both. Never add them to `.gitignore`.
-- Keep vite pinned to `^7` (not 8+) until `@vitejs/plugin-react` declares support for vite 8. Bumping vite to 8 causes an ERESOLVE peer dependency failure in `npm ci`.
+- `@vitejs/plugin-react` must stay at `^5.x` when using vite 7. The 4.x series only supports vite `^4.2.0 || ^5.0.0`; using it with vite 7 causes `ERESOLVE` in `npm ci`. The 6.x series requires vite 8+. If upgrading vite to 8, bump `@vitejs/plugin-react` to `^6.x` in lockstep.
 
 **nginx MIME type for `.mjs` (PDF.js worker):**
 The PDF.js worker is emitted by Vite as a `.mjs` file (`pdf.worker.min-*.mjs`). nginx's default `mime.types` does not include `.mjs`, so without an explicit override the file is served as `application/octet-stream`, which browsers reject under strict MIME checking for module scripts (manifests as "Failed to load module script" + "Setting up fake worker" fallback). The fix in `nginx.conf` is:
