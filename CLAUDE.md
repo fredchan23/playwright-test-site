@@ -395,7 +395,8 @@ A code review of the context caching implementation identified and fixed three i
 ### Outstanding (next session)
 
 - **60/60 tests passing** — suite is green.
-- **Cloud Build step 4** — needs a triggered build to confirm secrets (`TEST_*`, `SUPABASE_SERVICE_ROLE_KEY`) are provisioned in Secret Manager under the expected names.
+- **Cloud Build step 0 fixed (2026-04-29)** — `@vitejs/plugin-react` upgraded from `^4.3.1` to `^5.2.0`; vite 7 is now covered by the peer dep range. Committed as `7fb4ca8`. Push and trigger a Cloud Build run to confirm.
+- **Cloud Build step 4 (Playwright)** — still needs a triggered build to confirm secrets (`TEST_*`, `SUPABASE_SERVICE_ROLE_KEY`) are provisioned in Secret Manager under the expected names. Step 0 was failing before this could be reached.
 - **Mobile E2E coverage** — plan drafted at `tasks/plan.md` (on hold).
 - **Q&A latency** — cache hits still take ~25–30s (Gemini 2.5 Flash inference floor in asia-southeast1). The frontend already has a typewriter effect so perceived latency is acceptable. No further server-side levers identified without a model change.
 
