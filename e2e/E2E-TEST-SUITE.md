@@ -70,6 +70,59 @@ Defined in [playwright.config.ts](../playwright.config.ts):
 
 ---
 
+## Coverage Summary
+
+60 tests across 12 spec files, organised into four verification categories:
+
+| Category | Count | What's verified |
+|---|---|---|
+| **UI Interactions** | 21 | Click, hover, focus, navigation, and element visibility |
+| **Shimmer States** | 12 | Loading animations, async state transitions, feature flags |
+| **Form Submissions** | 15 | Auth flows, lesson CRUD, validation, sharing |
+| **AI Response Flow** | 12 | Edge function API, Gemini answers, LaTeX rendering |
+| **Total** | **60** | |
+
+### UI Interactions (21)
+
+| Spec | Tests |
+|---|---|
+| `library.spec.ts` | library loads, empty state, search, genre filter, tag filter, file-size filter, view toggle (7) |
+| `error-states.spec.ts` | not-found, delete dialog cancel, share dialog close, cancel no-changes (4) |
+| `admin-settings.spec.ts` | admin sees settings title/toggle, settings nav button (2) |
+| `regular-settings.spec.ts` | regular user redirect, settings button absent (2) |
+| `sharing.spec.ts` | share dialog opens, revoke share, RLS visibility (3) |
+| `lesson-crud.spec.ts` | read lesson, cancel with unsaved changes (2) |
+| `auth.spec.ts` | logout (1) |
+
+### Shimmer States (12)
+
+| Spec | Tests |
+|---|---|
+| `qa-panel.spec.ts` | panel absent when disabled, no-files state, input enabled, clear history, panel re-appears (5) |
+| `create-lesson-autofill.spec.ts` | shimmer appears, fields populate, no re-trigger, no overwrite pre-filled (4) |
+| `admin-settings.spec.ts` | Q&A toggle enabled→disabled (DB verified), disabled→enabled (DB verified) (2) |
+| `library.spec.ts` | shared lessons appear under shared-heading after async share (1) |
+
+### Form Submissions (15)
+
+| Spec | Tests |
+|---|---|
+| `auth.setup.ts` | authenticate regular user, authenticate admin user (2) |
+| `auth.spec.ts` | register valid, register short password, register duplicate, login invalid (4) |
+| `lesson-crud.spec.ts` | create metadata only, create with PDF, edit metadata, delete, validation (5) |
+| `sharing.spec.ts` | share valid user, share self, share unknown email, duplicate share (4) |
+
+### AI Response Flow (12)
+
+| Spec | Tests |
+|---|---|
+| `edge-function-metadata.spec.ts` | 401 no auth, 400 no file_data, 400 no mime_type, 400 unsupported mime, image/jpg accepted, 400 size cap, 200 valid image (7) |
+| `edge-function-qa-cache.spec.ts` | 401 no auth, cache miss answer, cache hit answer (3) |
+| `qa-panel.spec.ts` | ask question → user + assistant bubbles appear (1) |
+| `latex-rendering.spec.ts` | LaTeX renders as KaTeX HTML (1) |
+
+---
+
 ## Test Scenarios
 
 ### `auth.spec.ts` — Authentication
