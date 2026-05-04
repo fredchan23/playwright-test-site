@@ -327,6 +327,7 @@ export default function CreateLessonPage() {
                 color: 'var(--text-primary)', background: 'var(--surface)',
                 outline: 'none', height: 40, fontFamily: 'inherit', width: '100%',
               }}
+              maxLength={200}
               data-testid="create-lesson-title-input"
               aria-label="Lesson title"
             />
@@ -355,6 +356,7 @@ export default function CreateLessonPage() {
                 color: 'var(--text-primary)', background: 'var(--surface)',
                 outline: 'none', resize: 'vertical', lineHeight: 1.5, fontFamily: 'inherit', width: '100%',
               }}
+              maxLength={2000}
               data-testid="create-lesson-description-input"
               aria-label="Lesson description"
             />
@@ -410,6 +412,7 @@ export default function CreateLessonPage() {
                 fontSize: 14, color: 'var(--text-primary)', background: 'var(--surface)',
                 outline: 'none', height: 40, fontFamily: 'inherit', width: '100%',
               }}
+              maxLength={200}
               data-testid="create-lesson-tags-input"
               aria-label="Lesson tags"
             />
