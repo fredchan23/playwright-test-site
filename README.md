@@ -18,7 +18,10 @@ A Learning Management System built as a **Playwright automation training target*
 - **Lessons** — create, edit, and delete lessons with title, description, genre, and tags
 - **File Uploads** — attach PDF and image files to lessons; stored in Supabase private storage
 - **Sharing** — share lessons with other registered users; recipients get read-only access
-- **Lesson Q&A** — conversational AI panel on each lesson; answers grounded in the lesson's uploaded files via RAG (Vertex AI + pgvector)
+- **Lesson Q&A** — conversational AI panel per lesson; questions answered by Gemini 2.5 Flash grounded in the lesson's uploaded PDF files (Long-Context RAG via Vertex AI); conversation history persisted per user; export chat as Markdown
+- **AI Metadata Autofill** — dropping the first file on lesson create triggers Gemini to suggest title, description, tags, and genre; fields remain fully editable
+- **PDF Thumbnails** — first page of each PDF rendered client-side as a tile preview (pdfjs-dist)
+- **Mobile Layout** — fully responsive at 375px; sidebar drawer, tab-based lesson detail, icon-only action buttons
 - **Admin Settings** — global toggle to enable/disable the Q&A feature; accessible only to admin users
 
 ---
@@ -30,7 +33,7 @@ A Learning Management System built as a **Playwright automation training target*
 | Frontend | React 18, TypeScript, React Router v7 |
 | Styling | Tailwind CSS, Lucide React |
 | Backend / Auth | Supabase (PostgreSQL + Auth + Storage) |
-| AI / RAG | Vertex AI (Gemma 4 generation, text-embedding-004) |
+| AI | Vertex AI — Gemini 2.5 Flash (Long-Context RAG, context caching) |
 | Build | Vite |
 | Container | Docker (Node 20 build → Nginx Alpine serve) |
 | Hosting | Google Cloud Run (`asia-southeast1`) |
@@ -90,17 +93,26 @@ Every interactive element follows the pattern `{page}-{element}`:
 library-search-input
 library-lesson-card-{id}
 library-filter-genre-programming
-library-settings-button
+library-view-card-button
+library-view-list-button
 lesson-detail-title
 lesson-detail-upload-button
+lesson-detail-tab-bar
+lesson-detail-tab-lesson
+lesson-detail-tab-qa
 lesson-qa-panel
 lesson-qa-input
 lesson-qa-submit-button
 lesson-qa-message-{index}
 lesson-qa-clear-button
+lesson-qa-save-md-button
+lesson-file-pdf-thumbnail-{id}
 settings-page-title
 settings-qa-toggle
 create-lesson-title-input
+create-lesson-autofill-loading
+mobile-top-bar
+mobile-menu-button
 ```
 
 Preserve these attributes when modifying the UI — they are the Playwright test hooks.
@@ -123,3 +135,9 @@ Required at build time (Vite inlines them into the JS bundle):
 |---|---|
 | `VITE_SUPABASE_URL` | Supabase project URL |
 | `VITE_SUPABASE_ANON_KEY` | Supabase public anon key |
+
+---
+
+## Development Methodology
+
+This project was developed using the [Agent Skills](https://github.com/addyosmani/agent-skills) framework by Addy Osmani — an open-source collection of engineering workflow skills covering ideation, spec-driven development, planning, implementation, testing, code review, security hardening, documentation, and launch. Every feature was spec'd before it was built; every architectural decision has a written ADR.
