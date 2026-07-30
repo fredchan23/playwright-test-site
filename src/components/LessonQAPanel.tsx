@@ -354,7 +354,13 @@ export default function LessonQAPanel({ lessonId, columnMode = false }: LessonQA
           <Send className="w-3.5 h-3.5" />
         </button>
       </div>
-      <div className="text-right mt-1.5 text-[10px] font-mono" style={{ color: 'var(--text-muted)' }}>{input.length}/500</div>
+      <div className="flex items-center justify-between mt-1.5">
+        <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+          AI responses may be used by Google to improve their models.
+        </span>
+        <div className="text-[10px] font-mono" style={{ color: 'var(--text-muted)' }}>{input.length}/500</div>
+      </div>
+
     </div>
   );
 
