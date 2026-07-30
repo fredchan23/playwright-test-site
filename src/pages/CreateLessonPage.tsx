@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { ArrowLeft, Upload, X, FileText } from 'lucide-react';
 
+import { IS_DEMO_MODE, MAX_DEMO_LESSONS } from '../config';
+
 interface Genre {
   id: string;
   name: string;
@@ -41,11 +43,26 @@ export default function CreateLessonPage() {
   const [loading, setLoading] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [autofilling, setAutofilling] = useState(false);
+  const [lessonCountLimitReached, setLessonCountLimitReached] = useState(false);
   const autofillTriggered = useRef(false);
 
   useEffect(() => {
     loadGenres();
-  }, []);
+    if (IS_DEMO_MODE && user) {
+      checkLessonLimit();
+    }
+  }, [user]);
+
+  const checkLessonLimit = async () => {
+    if (!user) return;
+    const { count } = await supabase
+      .from('lessons')
+      .select('id', { count: 'exact', head: true })
+      .eq('owner_id', user.id);
+    if (count !== null && count >= MAX_DEMO_LESSONS) {
+      setLessonCountLimitReached(true);
+    }
+  };
 
   const loadGenres = async () => {
     const { data } = await supabase.from('genres').select('*').order('name');
@@ -171,6 +188,10 @@ export default function CreateLessonPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (lessonCountLimitReached) {
+      setErrors({ form: 'Demo Limit Reached: Maximum 2 lessons allowed. Delete an existing lesson to upload a new one.' });
+      return;
+    }
     const newErrors: Record<string, string> = {};
 
     if (!title.trim()) {
@@ -270,6 +291,19 @@ export default function CreateLessonPage() {
           style={{ background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}
           data-testid="create-lesson-form"
         >
+          {lessonCountLimitReached && (
+            <div
+              className="p-3.5 text-xs rounded-lg flex items-start gap-2"
+              style={{
+                background: 'oklch(0.96 0.04 40 / 0.8)',
+                color: 'oklch(0.38 0.14 40)',
+                border: '1px solid oklch(0.88 0.08 40)',
+              }}
+              data-testid="create-lesson-limit-banner"
+            >
+              <span>⚠️ <strong>Demo Limit Reached:</strong> Your library can hold a maximum of 2 lessons. Please delete an existing lesson from your library to upload a new one.</span>
+            </div>
+          )}
           {autofilling && (
             <>
               <style>{`
@@ -541,9 +575,15 @@ export default function CreateLessonPage() {
             </button>
             <button
               type="submit"
-              disabled={loading || autofilling}
+              disabled={loading || autofilling || lessonCountLimitReached}
               className="flex-1 px-5 py-2.5 rounded-lg text-sm font-medium text-white"
-              style={{ background: 'var(--accent)', border: 'none', cursor: (loading || autofilling) ? 'not-allowed' : 'pointer', opacity: (loading || autofilling) ? 0.7 : 1, fontFamily: 'inherit' }}
+              style={{
+                background: 'var(--accent)',
+                border: 'none',
+                cursor: (loading || autofilling || lessonCountLimitReached) ? 'not-allowed' : 'pointer',
+                opacity: (loading || autofilling || lessonCountLimitReached) ? 0.6 : 1,
+                fontFamily: 'inherit',
+              }}
               data-testid="create-lesson-save-button"
             >
               {loading ? 'Creating…' : 'Create Lesson'}

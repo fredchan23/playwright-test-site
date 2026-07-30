@@ -11,6 +11,8 @@ import LessonDetailPage from './pages/LessonDetailPage';
 import EditLessonPage from './pages/EditLessonPage';
 import SettingsPage from './pages/SettingsPage';
 
+import { IS_DEMO_MODE } from './config';
+
 function App() {
   return (
     <AuthProvider>
@@ -18,7 +20,10 @@ function App() {
         <ErrorBoundary>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
+            <Route
+              path="/register"
+              element={IS_DEMO_MODE ? <Navigate to="/login" replace /> : <RegisterPage />}
+            />
             <Route
               path="/library"
               element={

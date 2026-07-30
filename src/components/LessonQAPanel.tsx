@@ -7,6 +7,12 @@ import 'katex/dist/katex.min.css';
 import { katexSanitizeSchema } from '../lib/sanitizeSchema';
 import { supabase } from '../lib/supabase';
 import { Sparkles, Send, Trash2, Loader2, Download, MessageCircle } from 'lucide-react';
+import {
+  IS_DEMO_MODE,
+  MAX_DEMO_QUESTIONS_PER_SESSION,
+  getDemoSessionQaCount,
+  incrementDemoSessionQaCount,
+} from '../config';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -39,7 +45,10 @@ export default function LessonQAPanel({ lessonId, columnMode = false }: LessonQA
   const [input, setInput] = useState('');
   const [asking, setAsking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [qaCount, setQaCount] = useState<number>(getDemoSessionQaCount);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const isQaLimitReached = IS_DEMO_MODE && qaCount >= MAX_DEMO_QUESTIONS_PER_SESSION;
 
   useEffect(() => {
     supabase
@@ -84,11 +93,15 @@ export default function LessonQAPanel({ lessonId, columnMode = false }: LessonQA
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isQaLimitReached) return;
     const question = input.trim();
     if (!question || asking) return;
 
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
+
+    const nextCount = incrementDemoSessionQaCount();
+    setQaCount(nextCount);
 
     setMessages(prev => [...prev, { role: 'user', content: question }]);
     setInput('');
@@ -309,6 +322,19 @@ export default function LessonQAPanel({ lessonId, columnMode = false }: LessonQA
   // ── Input ─────────────────────────────────────────────────────────────────────
   const inputArea = (
     <div className="shrink-0" style={{ padding: '12px 14px', borderTop: '1px solid var(--border-light)' }}>
+      {isQaLimitReached && (
+        <div
+          className="p-2.5 mb-2.5 text-xs rounded-lg flex items-center justify-between"
+          style={{
+            background: 'oklch(0.96 0.04 40 / 0.8)',
+            color: 'oklch(0.38 0.14 40)',
+            border: '1px solid oklch(0.88 0.08 40)',
+          }}
+          data-testid="demo-qa-limit-banner"
+        >
+          <span>⚠️ <strong>Demo Limit Reached:</strong> You can ask a maximum of 2 questions per login session.</span>
+        </div>
+      )}
       <div className="flex items-end gap-2">
         <textarea
           value={input}
@@ -319,10 +345,10 @@ export default function LessonQAPanel({ lessonId, columnMode = false }: LessonQA
               handleSubmit(e as unknown as React.FormEvent);
             }
           }}
-          placeholder="Ask a question about this lesson…"
+          placeholder={isQaLimitReached ? "Question limit reached (2/2 allowed per session)" : "Ask a question about this lesson…"}
           rows={2}
           maxLength={500}
-          disabled={asking || status !== 'ready'}
+          disabled={asking || status !== 'ready' || isQaLimitReached}
           className="flex-1 resize-none text-sm focus:outline-none disabled:opacity-50"
           style={{
             border: '1px solid var(--border)',
@@ -339,15 +365,15 @@ export default function LessonQAPanel({ lessonId, columnMode = false }: LessonQA
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={!input.trim() || asking || status !== 'ready'}
+          disabled={!input.trim() || asking || status !== 'ready' || isQaLimitReached}
           className="flex items-center justify-center shrink-0"
           style={{
             width: 36, height: 36,
             borderRadius: 8,
             border: 'none',
-            background: input.trim() && !asking ? 'var(--accent)' : 'var(--surface2)',
-            color: input.trim() && !asking ? '#fff' : 'var(--text-muted)',
-            cursor: input.trim() && !asking ? 'pointer' : 'default',
+            background: input.trim() && !asking && !isQaLimitReached ? 'var(--accent)' : 'var(--surface2)',
+            color: input.trim() && !asking && !isQaLimitReached ? '#fff' : 'var(--text-muted)',
+            cursor: input.trim() && !asking && !isQaLimitReached ? 'pointer' : 'default',
           }}
           data-testid="lesson-qa-submit-button"
         >

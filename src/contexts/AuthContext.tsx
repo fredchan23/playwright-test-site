@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { resetDemoSessionQaCount } from '../config';
 
 interface AuthContextType {
   user: User | null;
@@ -65,6 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
+      resetDemoSessionQaCount();
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -79,6 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    resetDemoSessionQaCount();
     await supabase.auth.signOut();
   };
 

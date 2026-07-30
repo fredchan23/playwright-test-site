@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { IS_DEMO_MODE, DEMO_EMAIL, DEMO_PASSWORD } from '../config';
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { signIn } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState(IS_DEMO_MODE ? DEMO_EMAIL : '');
+  const [password, setPassword] = useState(IS_DEMO_MODE ? DEMO_PASSWORD : '');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -69,6 +70,20 @@ export default function LoginPage() {
             Sign in to access your lessons
           </p>
         </div>
+
+        {IS_DEMO_MODE && (
+          <div
+            className="p-3 mb-4 text-xs rounded-lg flex items-start gap-2"
+            style={{
+              background: 'oklch(0.96 0.03 240 / 0.8)',
+              color: 'oklch(0.35 0.12 240)',
+              border: '1px solid oklch(0.88 0.06 240)',
+            }}
+            data-testid="demo-login-micro-prompt"
+          >
+            <span>💡 <strong>Public Demo Mode:</strong> Credentials are prefilled. Click <strong>Sign in</strong> to enter the demo site.</span>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} data-testid="login-form" className="flex flex-col gap-3.5">
           <div className="flex flex-col gap-1.5">
@@ -172,16 +187,18 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="text-center text-[13px] mt-5" style={{ color: 'var(--text-muted)' }}>
-          Don't have an account?{' '}
-          <Link
-            to="/register"
-            style={{ color: 'var(--accent)', fontWeight: 500 }}
-            data-testid="login-register-link"
-          >
-            Create one
-          </Link>
-        </p>
+        {!IS_DEMO_MODE && (
+          <p className="text-center text-[13px] mt-5" style={{ color: 'var(--text-muted)' }}>
+            Don't have an account?{' '}
+            <Link
+              to="/register"
+              style={{ color: 'var(--accent)', fontWeight: 500 }}
+              data-testid="login-register-link"
+            >
+              Create one
+            </Link>
+          </p>
+        )}
       </div>
     </div>
   );

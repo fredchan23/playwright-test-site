@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Plus, Search, FileText, X, SlidersHorizontal, LayoutGrid, List, Share2, File } from 'lucide-react';
 import RangeSlider from '../components/RangeSlider';
 import useIsMobile from '../hooks/useIsMobile';
+import { IS_DEMO_MODE, MAX_DEMO_LESSONS } from '../config';
 
 interface Genre {
   id: string;
@@ -205,10 +206,11 @@ export default function LibraryPage() {
     localStorage.setItem('library-view-mode', mode);
   };
 
+  const demoLimitReached = IS_DEMO_MODE && ownLessons.length >= MAX_DEMO_LESSONS;
   const filteredOwnLessons = filterLessons(ownLessons);
-  const filteredSharedLessons = filterLessons(sharedLessons);
+  const filteredSharedLessons = IS_DEMO_MODE ? [] : filterLessons(sharedLessons);
   const totalFiltered = filteredOwnLessons.length + filteredSharedLessons.length;
-  const totalLessons = ownLessons.length + sharedLessons.length;
+  const totalLessons = ownLessons.length + (IS_DEMO_MODE ? 0 : sharedLessons.length);
   const hasFileSizeFilter = fileSizeRange[0] > 0 || fileSizeRange[1] < maxFileSize;
   const hasActiveFilters =
     searchQuery || selectedGenres.length > 0 || selectedTags.length > 0 || hasFileSizeFilter;
@@ -337,15 +339,24 @@ export default function LibraryPage() {
           <div className="flex-1" />
 
           <button
-            onClick={() => navigate('/lessons/create')}
+            onClick={() => {
+              if (demoLimitReached) {
+                alert('Demo Limit Reached: Library can hold a maximum of 2 lessons. Delete an existing lesson to upload a new one.');
+                return;
+              }
+              navigate('/lessons/create');
+            }}
+            disabled={demoLimitReached}
             className="flex items-center gap-1.5 rounded-lg text-sm font-medium text-white"
             style={{
               padding: isMobile ? '7px 10px' : '7px 14px',
-              background: 'var(--accent)',
+              background: demoLimitReached ? 'var(--text-muted)' : 'var(--accent)',
               border: 'none',
-              cursor: 'pointer',
+              cursor: demoLimitReached ? 'not-allowed' : 'pointer',
+              opacity: demoLimitReached ? 0.6 : 1,
               fontFamily: 'inherit',
             }}
+            title={demoLimitReached ? 'Demo limit reached: maximum 2 lessons allowed.' : 'Create new lesson'}
             data-testid="library-create-lesson-button"
           >
             <Plus className="w-3.5 h-3.5" />
@@ -356,6 +367,19 @@ export default function LibraryPage() {
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto" style={{ padding: isMobile ? '16px 16px' : '24px 28px' }}>
+        {demoLimitReached && (
+          <div
+            className="p-3.5 mb-5 text-xs rounded-lg flex items-center justify-between gap-2"
+            style={{
+              background: 'oklch(0.96 0.04 40 / 0.8)',
+              color: 'oklch(0.38 0.14 40)',
+              border: '1px solid oklch(0.88 0.08 40)',
+            }}
+            data-testid="demo-library-limit-banner"
+          >
+            <span>⚠️ <strong>Demo Limit Reached:</strong> Library is holding the maximum of 2 lessons. Delete an existing lesson to upload a new one.</span>
+          </div>
+        )}
         {/* Filters panel */}
         {showFilters && (
           <div

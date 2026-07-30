@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { ArrowLeft, SquarePen as Edit, Trash2, Share2, FileText, Image as ImageIcon, Download, X, BookOpen, Sparkles } from 'lucide-react';
 import LessonQAPanel from '../components/LessonQAPanel';
 import useIsMobile from '../hooks/useIsMobile';
+import { IS_DEMO_MODE } from '../config';
 
 const GENRE_COLORS: Record<string, { bg: string; text: string }> = {
   Arts:        { bg: 'oklch(0.93 0.05 340)', text: 'oklch(0.45 0.15 340)' },
@@ -256,22 +257,24 @@ export default function LessonDetailPage() {
 
         {isOwner && (
           <div className="flex items-center gap-1">
-            <button
-              onClick={() => setShowShareDialog(true)}
-              className="flex items-center gap-1.5 rounded-lg text-sm font-medium"
-              style={{
-                padding: isMobile ? '6px' : '6px 12px',
-                color: 'var(--text-secondary)',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-              }}
-              data-testid="lesson-detail-share-button"
-            >
-              <Share2 className="w-3.5 h-3.5" />
-              {!isMobile && 'Share'}
-            </button>
+            {!IS_DEMO_MODE && (
+              <button
+                onClick={() => setShowShareDialog(true)}
+                className="flex items-center gap-1.5 rounded-lg text-sm font-medium"
+                style={{
+                  padding: isMobile ? '6px' : '6px 12px',
+                  color: 'var(--text-secondary)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+                data-testid="lesson-detail-share-button"
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                {!isMobile && 'Share'}
+              </button>
+            )}
             <button
               onClick={() => navigate(`/lessons/${id}/edit`)}
               className="flex items-center gap-1.5 rounded-lg text-sm font-medium"

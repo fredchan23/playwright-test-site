@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { IS_DEMO_MODE } from '../config';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -9,6 +10,60 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+
+  if (IS_DEMO_MODE) {
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center p-4 relative"
+        style={{ background: 'var(--bg)' }}
+      >
+        <div
+          className="w-full max-w-[400px] relative z-10 text-center"
+          style={{
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-lg)',
+            boxShadow: 'var(--shadow-lg)',
+            padding: '40px 36px',
+          }}
+        >
+          <div
+            className="w-11 h-11 rounded-xl flex items-center justify-center mx-auto mb-4"
+            style={{ background: 'var(--text-primary)' }}
+          >
+            <span className="text-white font-bold text-base tracking-tight">SN</span>
+          </div>
+          <h1
+            className="text-[22px] font-bold tracking-tight mb-2"
+            style={{ color: 'var(--text-primary)' }}
+          >
+            Registration Disabled
+          </h1>
+          <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>
+            User registration is disabled in Public Demo Mode. Please use the prefilled demo account to log in.
+          </p>
+          <button
+            onClick={() => navigate('/login')}
+            style={{
+              background: 'var(--accent)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 8,
+              padding: '11px 24px',
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              width: '100%',
+            }}
+            data-testid="demo-register-back-to-login"
+          >
+            Back to Sign In
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
